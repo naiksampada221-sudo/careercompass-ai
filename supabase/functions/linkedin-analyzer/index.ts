@@ -19,63 +19,76 @@ serve(async (req) => {
 
     let contentToAnalyze = profileText || "";
 
-    // If URL provided, scrape it with Firecrawl
-    if (profileUrl && profileUrl.trim()) {
+    // If URL provided, use Firecrawl search to find profile info
+    if (profileUrl && profileUrl.trim() && !contentToAnalyze) {
       const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
       if (!FIRECRAWL_API_KEY) {
         return new Response(
-          JSON.stringify({ error: "Firecrawl is not configured. Please connect Firecrawl in settings." }),
+          JSON.stringify({ error: "Firecrawl is not configured." }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      let formattedUrl = profileUrl.trim();
-      if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
-        formattedUrl = `https://${formattedUrl}`;
-      }
+      // Extract username from URL for search
+      const urlMatch = profileUrl.match(/linkedin\.com\/in\/([^\/\?]+)/i);
+      const username = urlMatch ? urlMatch[1].replace(/-/g, " ") : profileUrl;
 
-      console.log("Scraping LinkedIn URL:", formattedUrl);
+      console.log("Searching for LinkedIn profile:", username);
 
-      const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      // Use Firecrawl search to find publicly available profile info
+      const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          url: formattedUrl,
-          formats: ["markdown"],
-          onlyMainContent: true,
-          waitFor: 3000,
+          query: `site:linkedin.com/in "${username}" profile summary experience skills`,
+          limit: 5,
+          scrapeOptions: { formats: ["markdown"] },
         }),
       });
 
-      const scrapeData = await scrapeResponse.json();
+      const searchData = await searchResponse.json();
 
-      if (!scrapeResponse.ok) {
-        console.error("Firecrawl error:", scrapeData);
-        if (scrapeResponse.status === 402) {
+      if (!searchResponse.ok) {
+        console.error("Firecrawl search error:", searchData);
+        if (searchResponse.status === 402) {
           return new Response(
             JSON.stringify({ error: "Firecrawl credits exhausted. Please top up your Firecrawl plan." }),
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
         return new Response(
-          JSON.stringify({ error: `Failed to scrape LinkedIn profile: ${scrapeData.error || "Unknown error"}` }),
+          JSON.stringify({ error: "Could not search for profile. Please paste your profile content manually instead." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const scrapedMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
-      if (!scrapedMarkdown || scrapedMarkdown.length < 50) {
+      // Gather all scraped content from search results
+      const results = searchData.data || [];
+      const gathered = results
+        .map((r: any) => {
+          const parts = [];
+          if (r.title) parts.push(`Title: ${r.title}`);
+          if (r.description) parts.push(`Description: ${r.description}`);
+          if (r.markdown) parts.push(r.markdown);
+          return parts.join("\n");
+        })
+        .join("\n\n---\n\n");
+
+      if (gathered.length < 50) {
         return new Response(
-          JSON.stringify({ error: "Could not extract enough content from this LinkedIn URL. LinkedIn may have blocked access. Try pasting your profile content manually." }),
+          JSON.stringify({ 
+            error: "Could not find enough public information for this LinkedIn profile. LinkedIn limits public access to profiles. Please paste your profile content using the manual input option below.",
+            showManualInput: true 
+          }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      contentToAnalyze = scrapedMarkdown;
-      console.log("Scraped content length:", contentToAnalyze.length);
+      contentToAnalyze = `LinkedIn Profile URL: ${profileUrl}\n\nPublicly available profile information:\n\n${gathered}`;
+      console.log("Gathered content length:", contentToAnalyze.length);
     }
 
     if (!contentToAnalyze || contentToAnalyze.trim().length < 20) {
@@ -118,7 +131,7 @@ Scoring guidelines:
 - 40-59: Below average, significant improvements needed
 - 0-39: Incomplete or very weak profile
 
-Be specific, honest, and actionable. Reference actual content from their profile.`;
+If profile data is limited (from public search results), score based on available info and note what's missing. Be specific, honest, and actionable. Reference actual content from their profile.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

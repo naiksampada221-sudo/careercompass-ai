@@ -64,7 +64,12 @@ export default function LinkedInAnalyzerPage() {
       });
 
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        if (data.showManualInput) {
+          setShowManualInput(true);
+        }
+        throw new Error(data.error);
+      }
       if (!data?.data) throw new Error("No analysis returned");
 
       setResult(data.data);
