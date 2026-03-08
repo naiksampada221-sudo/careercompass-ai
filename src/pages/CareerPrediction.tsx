@@ -585,6 +585,34 @@ export default function CareerPredictionPage() {
               ))}
             </div>
 
+            {/* Sources */}
+            {sources.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="glass-card rounded-2xl p-5"
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Globe className="h-3 w-3" /> Sources from Google Search
+                </p>
+                <div className="space-y-1.5">
+                  {sources.slice(0, 5).map((s, i) => (
+                    <a
+                      key={i}
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-xs text-primary hover:underline truncate"
+                    >
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                      {s.title || s.url}
+                    </a>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             {/* Try again */}
             <motion.div
               initial={{ opacity: 0 }}
