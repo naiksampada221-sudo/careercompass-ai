@@ -169,6 +169,44 @@ export default function HomePage() {
           </AnimatedSection>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="py-10 border-t border-border/50">
+        <div className="max-w-5xl mx-auto px-4 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col items-center gap-3"
+          >
+            <motion.p
+              className="text-sm text-muted-foreground tracking-wide"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              Crafted with passion
+            </motion.p>
+            <motion.h3
+              className="font-display text-xl font-bold gradient-text"
+              initial={{ letterSpacing: "0.3em", opacity: 0 }}
+              whileInView={{ letterSpacing: "0.05em", opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, ease: "easeOut" }}
+            >
+              Made by Aditya W
+            </motion.h3>
+            <motion.div
+              className="h-0.5 w-16 rounded-full"
+              style={{ background: "var(--gradient-primary)" }}
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+            />
+          </motion.div>
+        </div>
+      </footer>
     </div>
   );
 }
