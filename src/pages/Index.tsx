@@ -13,10 +13,10 @@ const features = [
 ];
 
 const steps = [
-  { icon: Upload, num: "01", title: "Upload Resume", desc: "Drop your PDF resume and let AI do the rest" },
-  { icon: Sparkles, num: "02", title: "AI Analysis", desc: "Advanced NLP extracts skills, experience & insights" },
-  { icon: Target, num: "03", title: "Career Insights", desc: "Get personalized career paths and role predictions" },
-  { icon: GraduationCap, num: "04", title: "Interview Prep", desc: "Practice with tailored questions and mock interviews" },
+  { icon: Upload, num: "01", title: "Upload Resume", desc: "Drop your PDF resume and let AI do the rest", link: "/resume-analyzer" },
+  { icon: Sparkles, num: "02", title: "ATS Scan", desc: "Check your resume against job descriptions for ATS compatibility", link: "/ats-scanner" },
+  { icon: Target, num: "03", title: "Career Insights", desc: "Explore career paths, skill roadmaps & predictions", link: "/career-roadmap" },
+  { icon: GraduationCap, num: "04", title: "Interview Prep", desc: "Practice with AI-powered mock interviews", link: "/interview-coach" },
 ];
 
 export default function HomePage() {
