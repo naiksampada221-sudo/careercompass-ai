@@ -12,20 +12,80 @@ serve(async (req) => {
   }
 
   try {
-    const { profileText, profileUrl } = await req.json();
+    const { profileUrl, profileText } = await req.json();
 
-    if (!profileText || profileText.trim().length < 20) {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    let contentToAnalyze = profileText || "";
+
+    // If URL provided, scrape it with Firecrawl
+    if (profileUrl && profileUrl.trim()) {
+      const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+      if (!FIRECRAWL_API_KEY) {
+        return new Response(
+          JSON.stringify({ error: "Firecrawl is not configured. Please connect Firecrawl in settings." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let formattedUrl = profileUrl.trim();
+      if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
+        formattedUrl = `https://${formattedUrl}`;
+      }
+
+      console.log("Scraping LinkedIn URL:", formattedUrl);
+
+      const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: formattedUrl,
+          formats: ["markdown"],
+          onlyMainContent: true,
+          waitFor: 3000,
+        }),
+      });
+
+      const scrapeData = await scrapeResponse.json();
+
+      if (!scrapeResponse.ok) {
+        console.error("Firecrawl error:", scrapeData);
+        if (scrapeResponse.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "Firecrawl credits exhausted. Please top up your Firecrawl plan." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        return new Response(
+          JSON.stringify({ error: `Failed to scrape LinkedIn profile: ${scrapeData.error || "Unknown error"}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const scrapedMarkdown = scrapeData.data?.markdown || scrapeData.markdown || "";
+      if (!scrapedMarkdown || scrapedMarkdown.length < 50) {
+        return new Response(
+          JSON.stringify({ error: "Could not extract enough content from this LinkedIn URL. LinkedIn may have blocked access. Try pasting your profile content manually." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      contentToAnalyze = scrapedMarkdown;
+      console.log("Scraped content length:", contentToAnalyze.length);
+    }
+
+    if (!contentToAnalyze || contentToAnalyze.trim().length < 20) {
       return new Response(
-        JSON.stringify({ error: "Please provide sufficient LinkedIn profile content to analyze." }),
+        JSON.stringify({ error: "No profile content to analyze. Please provide a LinkedIn URL or paste your profile text." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
+    // Analyze with Gemini
     const systemPrompt = `You are an expert LinkedIn profile analyst and career coach. You analyze LinkedIn profiles and provide detailed, actionable feedback.
 
 You MUST respond with valid JSON only, no markdown, no explanation outside JSON. Use this exact structure:
@@ -47,21 +107,18 @@ You MUST respond with valid JSON only, no markdown, no explanation outside JSON.
   "summary_suggestion": "suggested improved summary/about section (2-3 sentences)",
   "industry": "detected industry",
   "seniority": "entry|mid|senior|executive",
-  "completeness": <number 0-100>
+  "completeness": <number 0-100>,
+  "profile_name": "detected full name from profile"
 }
 
 Scoring guidelines:
 - 90-100: Outstanding, top 1% profile
 - 75-89: Strong profile, minor improvements needed
 - 60-74: Good but needs work in key areas
-- 40-59: Below average, significant improvements needed  
+- 40-59: Below average, significant improvements needed
 - 0-39: Incomplete or very weak profile
 
 Be specific, honest, and actionable. Reference actual content from their profile.`;
-
-    const userPrompt = `Analyze this LinkedIn profile${profileUrl ? ` (URL: ${profileUrl})` : ''}:
-
-${profileText}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -73,7 +130,7 @@ ${profileText}`;
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "user", content: `Analyze this LinkedIn profile:\n\n${contentToAnalyze}` },
         ],
         temperature: 0,
       }),
@@ -98,7 +155,6 @@ ${profileText}`;
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content || "";
 
-    // Parse JSON from response (handle markdown code blocks)
     let parsed;
     try {
       const jsonStr = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();

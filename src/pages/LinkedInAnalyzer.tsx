@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Linkedin, Sparkles, Link2, FileText, Loader2, RotateCcw } from "lucide-react";
+import { Linkedin, Sparkles, Link2, FileText, Loader2, RotateCcw, Globe, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,25 +24,27 @@ interface AnalysisResult {
   industry: string;
   seniority: string;
   completeness: number;
+  profile_name?: string;
 }
 
 const loadingSteps = [
-  "Fetching profile data...",
-  "Analyzing headline & summary...",
-  "Evaluating experience & skills...",
+  "Fetching LinkedIn profile...",
+  "Extracting profile data...",
+  "Analyzing with AI...",
   "Generating recommendations...",
 ];
 
 export default function LinkedInAnalyzerPage() {
   const [profileUrl, setProfileUrl] = useState("");
   const [profileText, setProfileText] = useState("");
+  const [showManualInput, setShowManualInput] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
 
   const handleAnalyze = async () => {
-    if (!profileText.trim()) {
-      toast.error("Please paste your LinkedIn profile content");
+    if (!profileUrl.trim() && !profileText.trim()) {
+      toast.error("Please enter a LinkedIn profile URL or paste profile content");
       return;
     }
 
@@ -51,11 +53,14 @@ export default function LinkedInAnalyzerPage() {
 
     const interval = setInterval(() => {
       setLoadingStep((prev) => Math.min(prev + 1, loadingSteps.length - 1));
-    }, 1800);
+    }, 2200);
 
     try {
       const { data, error } = await supabase.functions.invoke("linkedin-analyzer", {
-        body: { profileText: profileText.trim(), profileUrl: profileUrl.trim() || undefined },
+        body: {
+          profileUrl: profileUrl.trim() || undefined,
+          profileText: profileText.trim() || undefined,
+        },
       });
 
       if (error) throw error;
@@ -77,6 +82,7 @@ export default function LinkedInAnalyzerPage() {
     setResult(null);
     setProfileUrl("");
     setProfileText("");
+    setShowManualInput(false);
   };
 
   return (
@@ -101,7 +107,7 @@ export default function LinkedInAnalyzerPage() {
         </motion.div>
         <h1 className="font-display text-3xl sm:text-4xl font-bold gradient-text mb-2">LinkedIn Profile Analyzer</h1>
         <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto">
-          Get AI-powered insights to optimize your LinkedIn profile and stand out to recruiters.
+          Paste your LinkedIn URL and get instant AI-powered profile optimization insights.
         </p>
       </motion.div>
 
@@ -139,7 +145,7 @@ export default function LinkedInAnalyzerPage() {
                   {loadingStep > i ? (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                       className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                      <span className="text-[8px] text-white font-bold">✓</span>
+                      <span className="text-[8px] text-primary-foreground font-bold">✓</span>
                     </motion.div>
                   ) : loadingStep === i ? (
                     <Loader2 className="h-4 w-4 text-primary animate-spin" />
@@ -157,45 +163,65 @@ export default function LinkedInAnalyzerPage() {
         {!result && !loading && (
           <motion.div key="input" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
             <AnimatedSection className="max-w-2xl mx-auto space-y-4">
-              {/* URL field */}
-              <div className="glass-card-premium rounded-2xl p-5">
-                <label className="flex items-center gap-2 font-display font-semibold text-sm mb-2">
-                  <Link2 className="h-4 w-4 text-primary" />
-                  LinkedIn Profile URL <span className="text-xs text-muted-foreground font-normal">(optional)</span>
-                </label>
-                <input
-                  type="url"
-                  value={profileUrl}
-                  onChange={(e) => setProfileUrl(e.target.value)}
-                  className="premium-input"
-                  placeholder="https://linkedin.com/in/your-profile"
-                />
-              </div>
-
-              {/* Profile text */}
+              {/* URL input — primary */}
               <div className="glass-card-premium rounded-3xl p-6 sm:p-8">
-                <label className="flex items-center gap-2 font-display font-semibold text-sm mb-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  Profile Content
+                <label className="flex items-center gap-2 font-display font-semibold text-sm mb-3">
+                  <Globe className="h-4 w-4 text-primary" />
+                  LinkedIn Profile URL
                 </label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Copy your LinkedIn profile page content (About, Experience, Skills, Education) and paste it below.
+                <div className="flex gap-3">
+                  <input
+                    type="url"
+                    value={profileUrl}
+                    onChange={(e) => setProfileUrl(e.target.value)}
+                    className="premium-input flex-1"
+                    placeholder="https://linkedin.com/in/username"
+                    onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  We'll automatically fetch and analyze your public LinkedIn profile.
                 </p>
-                <textarea
-                  value={profileText}
-                  onChange={(e) => setProfileText(e.target.value)}
-                  rows={10}
-                  className="premium-input resize-none mb-4"
-                  placeholder={"Paste your LinkedIn profile content here...\n\nTip: Visit your LinkedIn profile → Select All (Ctrl+A) → Copy (Ctrl+C) → Paste here"}
-                />
+
+                {/* Toggle manual input */}
+                <motion.button
+                  onClick={() => setShowManualInput(!showManualInput)}
+                  className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  {showManualInput ? "Hide" : "Or paste profile text manually"}
+                  <motion.span animate={{ rotate: showManualInput ? 180 : 0 }}>
+                    <ChevronDown className="h-3 w-3" />
+                  </motion.span>
+                </motion.button>
+
+                <AnimatePresence>
+                  {showManualInput && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <textarea
+                        value={profileText}
+                        onChange={(e) => setProfileText(e.target.value)}
+                        rows={8}
+                        className="premium-input resize-none mt-3"
+                        placeholder="Paste your LinkedIn profile content here as a fallback..."
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAnalyze}
-                  disabled={!profileText.trim()}
-                  className="w-full gradient-btn py-3.5 rounded-xl font-semibold text-sm disabled:opacity-50 flex items-center justify-center gap-2 magnetic-hover"
+                  disabled={!profileUrl.trim() && !profileText.trim()}
+                  className="w-full gradient-btn py-3.5 rounded-xl font-semibold text-sm disabled:opacity-50 flex items-center justify-center gap-2 magnetic-hover mt-5"
                 >
-                  <Sparkles className="h-4 w-4" /> Analyze with AI
+                  <Sparkles className="h-4 w-4" /> Analyze Profile
                 </motion.button>
               </div>
             </AnimatedSection>
@@ -206,6 +232,20 @@ export default function LinkedInAnalyzerPage() {
         {result && !loading && (
           <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="max-w-3xl mx-auto space-y-6">
+
+            {result.profile_name && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="text-center mb-2">
+                <h2 className="font-display font-bold text-lg text-foreground">{result.profile_name}</h2>
+                {profileUrl && (
+                  <a href={profileUrl} target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1">
+                    <Link2 className="h-3 w-3" /> View Profile
+                  </a>
+                )}
+              </motion.div>
+            )}
+
             <LinkedInScoreCard
               score={result.score}
               headlineScore={result.headline_score}
