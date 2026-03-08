@@ -546,128 +546,59 @@ export default function CareerRoadmapPage() {
               <ArrowLeft className="h-4 w-4" /> Back to careers
             </motion.button>
 
-            {/* Overview with market insights */}
+            {/* Overview */}
             <GlowCard>
               <div className="p-6">
                 <motion.h2
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="font-display font-bold text-2xl mb-3 gradient-text flex items-center gap-3"
+                  className="font-display font-bold text-2xl mb-3 gradient-text"
                 >
                   {roadmap.career}
-                  <PulseDot color="bg-green-500" />
                 </motion.h2>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-4">{roadmap.overview}</p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" /> Estimated: {roadmap.totalMonths} months to become job-ready
+                <p className="text-muted-foreground text-sm leading-relaxed">{roadmap.overview}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
+                  <Clock className="h-3.5 w-3.5" /> Estimated: {roadmap.totalMonths} months
                 </div>
               </div>
             </GlowCard>
 
-            {/* Market Insights */}
-            {roadmap.marketInsights && (
-              <AnimatedSection delay={0.1}>
-                <GlowCard>
-                  <div className="bg-gradient-to-r from-primary/10 via-secondary/5 to-primary/10 p-4 border-b border-border/50">
-                    <h3 className="font-display font-semibold text-lg flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                      Live Market Insights
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 font-bold flex items-center gap-1">
-                        <PulseDot color="bg-green-500" /> LIVE
-                      </span>
-                    </h3>
-                  </div>
-                  <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
-                      <DollarSign className="h-5 w-5 mx-auto mb-1 text-green-400 group-hover:animate-bounce" />
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Salary (USD)</p>
-                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.averageSalaryUSD}</p>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
-                      <DollarSign className="h-5 w-5 mx-auto mb-1 text-amber-400 group-hover:animate-bounce" />
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Salary (INR)</p>
-                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.averageSalaryINR}</p>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
-                      <Zap className="h-5 w-5 mx-auto mb-1 text-primary group-hover:animate-pulse" />
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Demand</p>
-                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.demandLevel}</p>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
-                      <TrendingUp className="h-5 w-5 mx-auto mb-1 text-emerald-400 group-hover:animate-bounce" />
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Growth</p>
-                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.growthRate}</p>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
-                      <Briefcase className="h-5 w-5 mx-auto mb-1 text-blue-400 group-hover:animate-bounce" />
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Openings</p>
-                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.jobOpenings}</p>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
-                      <Building2 className="h-5 w-5 mx-auto mb-1 text-violet-400 group-hover:animate-bounce" />
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Top Companies</p>
-                      <p className="text-xs font-medium mt-1 line-clamp-2">{roadmap.marketInsights.topHiringCompanies?.slice(0, 3).join(", ")}</p>
-                    </motion.div>
-                  </div>
-                </GlowCard>
-              </AnimatedSection>
-            )}
-
-            {/* Required Skills with sub-topics */}
-            <AnimatedSection delay={0.15}>
+            {/* Required Skills with sub-topics as bullet points */}
+            <AnimatedSection delay={0.1}>
               <GlowCard>
                 <div className="p-6">
                   <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
                     <Wrench className="h-5 w-5 text-primary" /> Required Skills
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-4">
                     {roadmap.requiredSkills.map((skill, i) => (
                       <motion.div
                         key={skill.name}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.05 }}
-                        whileHover={{ scale: 1.02, borderColor: "hsl(var(--primary))" }}
-                        className="p-3 rounded-xl bg-muted/50 border border-border cursor-pointer transition-all group hover:shadow-lg hover:shadow-primary/5"
-                        onClick={() => toggleTopic(`skill-${i}`)}
+                        className="p-4 rounded-xl bg-muted/50 border border-border hover:border-primary/20 transition-all"
                       >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-sm group-hover:text-primary transition-colors">{skill.name}</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs px-2 py-0.5 rounded-full border ${levelColors[skill.level] || "bg-muted"}`}>{skill.level}</span>
-                            {skill.subTopics && skill.subTopics.length > 0 && (
-                              <motion.span animate={{ rotate: expandedTopics.has(`skill-${i}`) ? 180 : 0 }}>
-                                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                              </motion.span>
-                            )}
-                          </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-semibold text-sm">{skill.name}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full border ${levelColors[skill.level] || "bg-muted"}`}>{skill.level}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{skill.description}</p>
-                        <AnimatePresence>
-                          {expandedTopics.has(`skill-${i}`) && skill.subTopics && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
-                                {skill.subTopics.map((st, j) => (
-                                  <motion.p
-                                    key={j}
-                                    initial={{ x: -10, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    transition={{ delay: j * 0.05 }}
-                                    className="text-xs text-muted-foreground flex items-center gap-1.5"
-                                  >
-                                    <CheckCircle2 className="h-3 w-3 text-primary shrink-0" /> {st}
-                                  </motion.p>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        <p className="text-xs text-muted-foreground mb-2">{skill.description}</p>
+                        {skill.subTopics && skill.subTopics.length > 0 && (
+                          <ul className="space-y-1 ml-1">
+                            {skill.subTopics.map((st, j) => (
+                              <motion.li
+                                key={j}
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: j * 0.03 }}
+                                className="text-xs text-muted-foreground flex items-center gap-1.5"
+                              >
+                                <CheckCircle2 className="h-3 w-3 text-primary shrink-0" /> {st}
+                              </motion.li>
+                            ))}
+                          </ul>
+                        )}
                       </motion.div>
                     ))}
                   </div>
@@ -675,11 +606,10 @@ export default function CareerRoadmapPage() {
               </GlowCard>
             </AnimatedSection>
 
-            {/* Stages with accordion */}
+            {/* Stages - skills & topics only */}
             {roadmap.stages.map((stage, si) => (
               <AnimatedSection key={si} delay={si * 0.08}>
                 <GlowCard>
-                  {/* Stage header - clickable */}
                   <motion.button
                     onClick={() => toggleStage(si)}
                     className="w-full p-4 flex items-center gap-3 text-left hover:bg-muted/20 transition-colors"
@@ -698,11 +628,7 @@ export default function CareerRoadmapPage() {
                     <div className="flex-1">
                       <h3 className="font-display font-bold text-base">{stage.title}</h3>
                       <p className="text-xs text-muted-foreground flex items-center gap-2">
-                        <Clock className="h-3 w-3" /> {stage.duration}
-                        <span className="text-muted-foreground/50">•</span>
-                        {stage.topics.length} topics
-                        <span className="text-muted-foreground/50">•</span>
-                        {stage.projects.length} projects
+                        <Clock className="h-3 w-3" /> {stage.duration} • {stage.topics.length} topics
                       </p>
                     </div>
                     <motion.div animate={{ rotate: expandedStages.has(si) ? 180 : 0 }} transition={{ duration: 0.3 }}>
@@ -719,159 +645,69 @@ export default function CareerRoadmapPage() {
                         transition={{ duration: 0.4, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <div className="p-6 space-y-6">
-                          {/* Milestones */}
-                          {stage.milestones && stage.milestones.length > 0 && (
-                            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
-                              <p className="text-xs font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-1.5">
-                                <Target className="h-3.5 w-3.5" /> Stage Milestones
-                              </p>
-                              <div className="space-y-1">
-                                {stage.milestones.map((m, mi) => (
-                                  <p key={mi} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                    <Star className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" /> {m}
-                                  </p>
+                        <div className="p-6 space-y-4">
+                          {stage.topics.map((topic, ti) => (
+                            <motion.div
+                              key={ti}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: ti * 0.06 }}
+                              className="p-4 rounded-xl bg-muted/30 border border-border hover:border-primary/20 transition-all"
+                            >
+                              <div className="flex items-center gap-2 flex-wrap mb-2">
+                                <p className="font-semibold text-sm">{topic.name}</p>
+                                {topic.difficulty && (
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded border ${difficultyColors[topic.difficulty] || "bg-muted"}`}>
+                                    {topic.difficulty}
+                                  </span>
+                                )}
+                                {topic.estimatedHours && (
+                                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                    <Clock className="h-2.5 w-2.5" /> {topic.estimatedHours}h
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mb-3">{topic.description}</p>
+
+                              {/* Sub-topics as bullet points - always visible */}
+                              {topic.subTopics && topic.subTopics.length > 0 && (
+                                <ul className="space-y-1.5 mb-3 ml-1">
+                                  {topic.subTopics.map((st, j) => (
+                                    <motion.li
+                                      key={j}
+                                      initial={{ opacity: 0, x: -8 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: j * 0.03 }}
+                                      className="text-xs text-muted-foreground flex items-center gap-1.5"
+                                    >
+                                      <CheckCircle2 className="h-3 w-3 text-primary shrink-0" /> {st}
+                                    </motion.li>
+                                  ))}
+                                </ul>
+                              )}
+
+                              {/* YouTube links */}
+                              <div className="flex flex-wrap gap-2">
+                                {[
+                                  { lang: "English", flag: "🇬🇧", suffix: " tutorial english" },
+                                  { lang: "Hindi", flag: "🇮🇳", suffix: " tutorial hindi" },
+                                  { lang: "Spanish", flag: "🇪🇸", suffix: " tutorial español" },
+                                ].map((l) => (
+                                  <motion.a
+                                    key={l.lang}
+                                    whileHover={{ scale: 1.05, y: -1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(topic.youtubeSearch + l.suffix)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs bg-destructive/10 text-destructive px-2.5 py-1 rounded-md flex items-center gap-1.5 hover:bg-destructive/20 transition-all"
+                                  >
+                                    <Youtube className="h-3 w-3" /> {l.flag} {l.lang}
+                                  </motion.a>
                                 ))}
                               </div>
-                            </div>
-                          )}
-
-                          {/* Topics */}
-                          <div>
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-                              <BookOpen className="h-3.5 w-3.5" /> Topics to Learn
-                            </h4>
-                            <div className="space-y-3">
-                              {stage.topics.map((topic, ti) => {
-                                const topicKey = `${si}-${ti}`;
-                                return (
-                                  <motion.div
-                                    key={ti}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: ti * 0.08 }}
-                                    className="p-4 rounded-xl bg-muted/30 border border-border hover:border-primary/20 transition-all group/topic"
-                                  >
-                                    <div className="flex items-start justify-between gap-2 mb-2">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <p className="font-semibold text-sm group-hover/topic:text-primary transition-colors">{topic.name}</p>
-                                          {topic.difficulty && (
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${difficultyColors[topic.difficulty] || "bg-muted"}`}>
-                                              {topic.difficulty}
-                                            </span>
-                                          )}
-                                          {topic.estimatedHours && (
-                                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                                              <Clock className="h-2.5 w-2.5" /> {topic.estimatedHours}h
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      {topic.subTopics && topic.subTopics.length > 0 && (
-                                        <motion.button
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.9 }}
-                                          onClick={() => toggleTopic(topicKey)}
-                                          className="p-1 rounded-md hover:bg-muted transition-colors"
-                                        >
-                                          <motion.div animate={{ rotate: expandedTopics.has(topicKey) ? 180 : 0 }}>
-                                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                          </motion.div>
-                                        </motion.button>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mb-3">{topic.description}</p>
-
-                                    {/* Sub-topics */}
-                                    <AnimatePresence>
-                                      {expandedTopics.has(topicKey) && topic.subTopics && (
-                                        <motion.div
-                                          initial={{ height: 0, opacity: 0 }}
-                                          animate={{ height: "auto", opacity: 1 }}
-                                          exit={{ height: 0, opacity: 0 }}
-                                          className="overflow-hidden mb-3"
-                                        >
-                                          <div className="p-3 rounded-lg bg-background/50 border border-border/50 space-y-1.5">
-                                            <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1 flex items-center gap-1">
-                                              <Brain className="h-3 w-3" /> Key Concepts
-                                            </p>
-                                            {topic.subTopics.map((st, j) => (
-                                              <motion.p
-                                                key={j}
-                                                initial={{ opacity: 0, x: -8 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: j * 0.04 }}
-                                                className="text-xs text-muted-foreground flex items-center gap-1.5"
-                                              >
-                                                <CheckCircle2 className="h-3 w-3 text-green-400 shrink-0" /> {st}
-                                              </motion.p>
-                                            ))}
-                                          </div>
-                                        </motion.div>
-                                      )}
-                                    </AnimatePresence>
-
-                                    {/* Resources */}
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      {topic.resources.map((r, ri) => (
-                                        <motion.span
-                                          key={ri}
-                                          whileHover={{ scale: 1.05 }}
-                                          className="text-xs bg-primary/5 text-primary px-2 py-1 rounded-md flex items-center gap-1 hover:bg-primary/10 transition-colors cursor-default"
-                                        >
-                                          <ExternalLink className="h-3 w-3" /> {r}
-                                        </motion.span>
-                                      ))}
-                                    </div>
-
-                                    {/* YouTube links */}
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                      {[
-                                        { lang: "English", flag: "🇬🇧", suffix: " tutorial english" },
-                                        { lang: "Hindi", flag: "🇮🇳", suffix: " tutorial hindi" },
-                                        { lang: "Spanish", flag: "🇪🇸", suffix: " tutorial español" },
-                                      ].map((l) => (
-                                        <motion.a
-                                          key={l.lang}
-                                          whileHover={{ scale: 1.05, y: -1 }}
-                                          whileTap={{ scale: 0.95 }}
-                                          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(topic.youtubeSearch + l.suffix)}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-xs bg-destructive/10 text-destructive px-2.5 py-1 rounded-md flex items-center gap-1.5 hover:bg-destructive/20 transition-all"
-                                        >
-                                          <Youtube className="h-3 w-3" /> {l.flag} {l.lang}
-                                        </motion.a>
-                                      ))}
-                                    </div>
-                                  </motion.div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* Projects */}
-                          {stage.projects.length > 0 && (
-                            <div>
-                              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
-                                <FolderOpen className="h-3.5 w-3.5" /> Hands-On Projects
-                              </h4>
-                              <ul className="space-y-1.5">
-                                {stage.projects.map((p, pi) => (
-                                  <motion.li
-                                    key={pi}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: pi * 0.1 }}
-                                    className="text-sm text-muted-foreground flex items-start gap-2 group hover:text-foreground transition-colors"
-                                  >
-                                    <span className="text-primary mt-0.5 group-hover:scale-125 transition-transform">▸</span> {p}
-                                  </motion.li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
+                            </motion.div>
+                          ))}
                         </div>
                       </motion.div>
                     )}
@@ -880,103 +716,34 @@ export default function CareerRoadmapPage() {
               </AnimatedSection>
             ))}
 
-            {/* Certifications */}
-            {roadmap.certifications?.length > 0 && (
-              <AnimatedSection>
-                <GlowCard>
-                  <div className="p-6">
-                    <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-                      <Award className="h-5 w-5 text-primary" /> Recommended Certifications
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {roadmap.certifications.map((cert, ci) => (
-                        <motion.div
-                          key={ci}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: ci * 0.08 }}
-                          whileHover={{ scale: 1.03, y: -2 }}
-                          className="p-3 rounded-xl bg-muted/50 border border-border text-center hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all group cursor-default"
-                        >
-                          <Award className="h-6 w-6 mx-auto mb-2 text-primary group-hover:animate-bounce" />
-                          <p className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">{cert.name}</p>
-                          <p className="text-xs text-muted-foreground mb-1">{cert.provider}</p>
-                          {cert.cost && <p className="text-[10px] text-muted-foreground mb-2">{cert.cost}</p>}
-                          <span className={`text-xs px-2 py-0.5 rounded-full border ${difficultyColors[cert.difficulty] || "bg-muted"}`}>
-                            {cert.difficulty}
-                          </span>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </GlowCard>
-              </AnimatedSection>
-            )}
-
-            {/* Interview Topics */}
-            {roadmap.interviewTopics && roadmap.interviewTopics.length > 0 && (
-              <AnimatedSection delay={0.1}>
-                <GlowCard>
-                  <div className="p-6">
-                    <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-primary" /> Common Interview Topics
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {roadmap.interviewTopics.map((topic, i) => (
-                        <motion.span
-                          key={i}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: i * 0.06 }}
-                          whileHover={{ scale: 1.08, y: -2 }}
-                          className="px-3 py-1.5 rounded-lg bg-primary/5 text-primary border border-primary/10 text-sm font-medium hover:bg-primary/10 hover:border-primary/30 transition-all cursor-default"
-                        >
-                          {topic}
-                        </motion.span>
-                      ))}
-                    </div>
-                  </div>
-                </GlowCard>
-              </AnimatedSection>
-            )}
-
             {/* Action buttons */}
             <AnimatedSection delay={0.2}>
               <GlowCard>
-                <div className="p-6 space-y-4">
-                  <h3 className="font-display font-semibold text-lg flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5 text-primary" /> What's Next?
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    You now have a complete roadmap to become a <span className="font-semibold text-foreground">{roadmap.career}</span>.
-                    Download as PDF or start preparing for interviews!
-                  </p>
-                  <div className="flex flex-wrap gap-3 pt-2">
-                    <motion.button
-                      whileHover={{ scale: 1.03, y: -1 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => generatePDF(roadmap)}
-                      className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-lg shadow-primary/20"
-                    >
-                      <Download className="h-4 w-4" /> Download Roadmap PDF
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.03, y: -1 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => navigate("/interview-coach")}
-                      className="px-6 py-3 rounded-xl font-semibold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2"
-                    >
-                      <MessageSquare className="h-4 w-4" /> Start Interview Prep
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.03, y: -1 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
-                      className="px-6 py-3 rounded-xl font-semibold text-sm bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2"
-                    >
-                      <ArrowLeft className="h-4 w-4" /> Explore Another Career
-                    </motion.button>
-                  </div>
+                <div className="p-6 flex flex-wrap gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.03, y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => generatePDF(roadmap)}
+                    className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-lg shadow-primary/20"
+                  >
+                    <Download className="h-4 w-4" /> Download PDF
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.03, y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => navigate("/interview-coach")}
+                    className="px-6 py-3 rounded-xl font-semibold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2"
+                  >
+                    <MessageSquare className="h-4 w-4" /> Start Interview Prep
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.03, y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
+                    className="px-6 py-3 rounded-xl font-semibold text-sm bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Explore Another Career
+                  </motion.button>
                 </div>
               </GlowCard>
             </AnimatedSection>
