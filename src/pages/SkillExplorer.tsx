@@ -6,6 +6,8 @@ import PageHeader from "@/components/PageHeader";
 import AnimatedSection from "@/components/AnimatedSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { saveActivity } from "@/lib/saveActivity";
 
 interface LearningStep {
   week: string;
@@ -27,6 +29,7 @@ export default function SkillExplorerPage() {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<SkillPlan | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleExplore = async () => {
     if (!skill.trim()) return;
@@ -40,6 +43,15 @@ export default function SkillExplorerPage() {
 
       if (error) throw error;
       setPlan(data.plan);
+      if (user) {
+        saveActivity({
+          userId: user.id,
+          activityType: "skill_explorer",
+          title: `Skill Explorer: ${skill.trim()}`,
+          summary: `${data.plan.totalWeeks} week learning plan with ${data.plan.steps?.length || 0} steps`,
+          resultData: data.plan,
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast({ title: "Error", description: e.message || "Failed to generate plan. Please try again.", variant: "destructive" });

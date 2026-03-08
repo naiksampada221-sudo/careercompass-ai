@@ -8,6 +8,8 @@ import ScoreCircle from "@/components/ScoreCircle";
 import AnimatedSection from "@/components/AnimatedSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { saveActivity } from "@/lib/saveActivity";
 
 interface ResumeResult {
   score: number;
@@ -28,6 +30,7 @@ export default function ResumeAnalyzerPage() {
   const [result, setResult] = useState<ResumeResult | null>(null);
   const [useText, setUseText] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleAnalyze = async (text: string) => {
     setAnalyzing(true);
@@ -38,6 +41,17 @@ export default function ResumeAnalyzerPage() {
       });
       if (error) throw error;
       setResult(data.result);
+      // Save to history
+      if (user) {
+        saveActivity({
+          userId: user.id,
+          activityType: "resume_analysis",
+          title: "Resume Analysis",
+          summary: `Score: ${data.result.score}/100 • ${data.result.skills?.length || 0} skills detected`,
+          score: data.result.score,
+          resultData: data.result,
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast({ title: "Error", description: e.message || "Failed to analyze resume.", variant: "destructive" });
