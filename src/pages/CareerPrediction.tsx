@@ -250,7 +250,7 @@ export default function CareerPredictionPage() {
     } finally { clearInterval(stepInterval); setLoading(false); setLoadingStep(0); }
   };
 
-  const reset = () => { setPredictions([]); setSkills([]); setExpandedIdx(null); setGrounded(false); setSources([]); setSelectedPrediction(null); };
+  const reset = () => { setPredictions([]); setSkills([]); setExpandedIdx(null); setGrounded(false); setSources([]); setSelectedPrediction(null); setLiveJobs([]); setTotalJobsFound(0); };
 
   return (
     <div className="page-container">
