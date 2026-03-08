@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Map, Loader2, BookOpen, Youtube, ExternalLink, Award, Wrench, FolderOpen, Clock, ChevronRight, Sparkles, ArrowLeft, Search, TrendingUp, Download, MessageSquare, GraduationCap } from "lucide-react";
+import { Map, Loader2, BookOpen, Youtube, ExternalLink, Award, Wrench, FolderOpen, Clock, ChevronRight, Sparkles, ArrowLeft, Search, TrendingUp, Download, MessageSquare, GraduationCap, Briefcase, DollarSign, Building2, Target, Zap, CheckCircle2, ChevronDown, ChevronUp as ChevronUpIcon, Brain, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BackButton from "@/components/BackButton";
 import PageHeader from "@/components/PageHeader";
@@ -11,19 +11,31 @@ import { saveActivity } from "@/lib/saveActivity";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 
-interface CareerPath {
-  id: string;
-  title: string;
-  icon: string;
-  category: string;
+// ── Types ──
+interface MarketInsights {
+  averageSalaryUSD: string;
+  averageSalaryINR: string;
+  demandLevel: string;
+  growthRate: string;
+  topHiringCompanies: string[];
+  jobOpenings: string;
+}
+
+interface SubTopicSkill {
+  name: string;
+  level: string;
   description: string;
+  subTopics?: string[];
 }
 
 interface RoadmapTopic {
   name: string;
   description: string;
+  subTopics?: string[];
   resources: string[];
   youtubeSearch: string;
+  difficulty?: string;
+  estimatedHours?: number;
 }
 
 interface RoadmapStage {
@@ -32,29 +44,37 @@ interface RoadmapStage {
   color: string;
   topics: RoadmapTopic[];
   projects: string[];
-}
-
-interface RequiredSkill {
-  name: string;
-  level: string;
-  description: string;
+  milestones?: string[];
 }
 
 interface Certification {
   name: string;
   provider: string;
   difficulty: string;
+  cost?: string;
+  url?: string;
 }
 
 interface CareerRoadmap {
   career: string;
   overview: string;
   totalMonths: number;
-  requiredSkills: RequiredSkill[];
+  marketInsights?: MarketInsights;
+  requiredSkills: SubTopicSkill[];
   stages: RoadmapStage[];
   certifications: Certification[];
+  interviewTopics?: string[];
 }
 
+interface CareerPath {
+  id: string;
+  title: string;
+  icon: string;
+  category: string;
+  description: string;
+}
+
+// ── Constants ──
 const categoryColors: Record<string, string> = {
   Tech: "from-blue-500 to-cyan-500",
   Business: "from-amber-500 to-orange-500",
@@ -80,12 +100,11 @@ const levelColors: Record<string, string> = {
 };
 
 const difficultyColors: Record<string, string> = {
-  Beginner: "bg-green-500/10 text-green-400",
-  Intermediate: "bg-amber-500/10 text-amber-400",
-  Advanced: "bg-red-500/10 text-red-400",
+  Beginner: "bg-green-500/10 text-green-400 border-green-500/20",
+  Intermediate: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  Advanced: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
-// Instant example career paths — shown immediately, no API call needed
 const exampleCareers: CareerPath[] = [
   { id: "data-scientist", title: "Data Scientist", icon: "📊", category: "Tech", description: "Analyze complex data to help organizations make better decisions using ML & statistics." },
   { id: "full-stack-dev", title: "Full Stack Developer", icon: "💻", category: "Tech", description: "Build complete web applications from frontend to backend and deployment." },
@@ -107,6 +126,28 @@ const exampleCareers: CareerPath[] = [
   { id: "quant-analyst", title: "Quantitative Analyst", icon: "📐", category: "Business", description: "Use mathematical models to analyze financial markets and manage risk." },
 ];
 
+// ── Pulse dot component ──
+const PulseDot = ({ color = "bg-primary" }: { color?: string }) => (
+  <span className="relative flex h-3 w-3">
+    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${color} opacity-75`} />
+    <span className={`relative inline-flex rounded-full h-3 w-3 ${color}`} />
+  </span>
+);
+
+// ── Glowing card wrapper ──
+const GlowCard = ({ children, className = "", glowColor = "primary" }: { children: React.ReactNode; className?: string; glowColor?: string }) => (
+  <motion.div
+    whileHover={{ scale: 1.01, y: -2 }}
+    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+    className={`relative group ${className}`}
+  >
+    <div className={`absolute -inset-0.5 bg-gradient-to-r from-${glowColor}/20 to-secondary/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+    <div className="relative glass-card rounded-2xl overflow-hidden">
+      {children}
+    </div>
+  </motion.div>
+);
+
 export default function CareerRoadmapPage() {
   const [selectedCareer, setSelectedCareer] = useState<string | null>(null);
   const [roadmap, setRoadmap] = useState<CareerRoadmap | null>(null);
@@ -116,51 +157,53 @@ export default function CareerRoadmapPage() {
   const [searchResults, setSearchResults] = useState<CareerPath[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [expandedStages, setExpandedStages] = useState<Set<number>>(new Set());
+  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Real-time AI search for career paths
+  const toggleStage = (i: number) => {
+    setExpandedStages(prev => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  };
+
+  const toggleTopic = (key: string) => {
+    setExpandedTopics(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
+  // Real-time AI search
   const fetchSearchResults = useCallback(async (query: string) => {
-    if (query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
+    if (query.length < 2) { setSearchResults([]); return; }
     setLoadingSearch(true);
     try {
       const { data, error } = await supabase.functions.invoke("career-roadmap", {
         body: { career: query, action: "suggest_careers" },
       });
-      if (!error && data?.result) {
-        setSearchResults(data.result);
-        setShowDropdown(true);
-      }
-    } catch {
-      // silently fail for autocomplete
-    } finally {
-      setLoadingSearch(false);
-    }
+      if (!error && data?.result) { setSearchResults(data.result); setShowDropdown(true); }
+    } catch {} finally { setLoadingSearch(false); }
   }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (searchQuery.trim().length >= 2) {
       debounceRef.current = setTimeout(() => fetchSearchResults(searchQuery.trim()), 500);
-    } else {
-      setSearchResults([]);
-      setShowDropdown(false);
-    }
+    } else { setSearchResults([]); setShowDropdown(false); }
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchQuery, fetchSearchResults]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowDropdown(false);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -171,212 +214,124 @@ export default function CareerRoadmapPage() {
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     let y = 0;
-
-    const checkPage = (needed: number) => {
-      if (y + needed > pageH - 25) { doc.addPage(); drawPageBorder(); y = 25; }
-    };
-
-    const drawPageBorder = () => {
-      doc.setDrawColor(120, 80, 220);
-      doc.setLineWidth(0.5);
-      doc.roundedRect(8, 8, pageW - 16, pageH - 16, 3, 3);
-    };
-
+    const checkPage = (needed: number) => { if (y + needed > pageH - 25) { doc.addPage(); drawPageBorder(); y = 25; } };
+    const drawPageBorder = () => { doc.setDrawColor(120, 80, 220); doc.setLineWidth(0.5); doc.roundedRect(8, 8, pageW - 16, pageH - 16, 3, 3); };
     const drawSectionHeader = (title: string, emoji: string) => {
       checkPage(18);
       doc.setFillColor(120, 80, 220);
       doc.roundedRect(20, y - 2, pageW - 40, 10, 2, 2, "F");
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
       doc.text(`${emoji}  ${title}`, 26, y + 5);
-      doc.setTextColor(40, 40, 40);
-      y += 16;
+      doc.setTextColor(40, 40, 40); y += 16;
     };
 
-    // ── Cover Page ──
     drawPageBorder();
-
-    // Accent bar at top
-    doc.setFillColor(120, 80, 220);
-    doc.rect(8, 8, pageW - 16, 50, "F");
-
-    doc.setFontSize(28);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(120, 80, 220); doc.rect(8, 8, pageW - 16, 50, "F");
+    doc.setFontSize(28); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
     doc.text(rm.career, pageW / 2, 32, { align: "center" });
-    doc.setFontSize(13);
-    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13); doc.setFont("helvetica", "normal");
     doc.text("Career Roadmap & Skill Guide", pageW / 2, 44, { align: "center" });
+    doc.setTextColor(40, 40, 40); y = 75;
 
-    doc.setTextColor(40, 40, 40);
-    y = 75;
-
-    // Overview box
-    doc.setFillColor(245, 243, 255);
     const overviewText = doc.splitTextToSize(rm.overview, pageW - 56);
     const boxH = overviewText.length * 5 + 12;
-    doc.roundedRect(20, y - 4, pageW - 40, boxH, 3, 3, "F");
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(60, 60, 60);
-    doc.text(overviewText, 28, y + 4);
-    y += boxH + 10;
+    doc.setFillColor(245, 243, 255); doc.roundedRect(20, y - 4, pageW - 40, boxH, 3, 3, "F");
+    doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(60, 60, 60);
+    doc.text(overviewText, 28, y + 4); y += boxH + 10;
 
-    // Quick stats
-    doc.setFillColor(240, 240, 255);
-    doc.roundedRect(20, y, (pageW - 48) / 3, 18, 2, 2, "F");
-    doc.roundedRect(24 + (pageW - 48) / 3, y, (pageW - 48) / 3, 18, 2, 2, "F");
-    doc.roundedRect(28 + 2 * (pageW - 48) / 3, y, (pageW - 48) / 3, 18, 2, 2, "F");
+    // Market insights
+    if (rm.marketInsights) {
+      drawSectionHeader("Market Insights", "📊");
+      const mi = rm.marketInsights;
+      const insights = [
+        `Salary (USD): ${mi.averageSalaryUSD}`,
+        `Salary (INR): ${mi.averageSalaryINR}`,
+        `Demand: ${mi.demandLevel} | Growth: ${mi.growthRate}`,
+        `Top Companies: ${mi.topHiringCompanies?.join(", ")}`,
+      ];
+      insights.forEach(text => {
+        checkPage(8);
+        doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(60, 60, 60);
+        doc.text(text, 28, y + 3); y += 7;
+      });
+      y += 6;
+    }
 
-    doc.setFontSize(8);
-    doc.setTextColor(120, 80, 220);
-    doc.setFont("helvetica", "bold");
-    doc.text("DURATION", 20 + (pageW - 48) / 6, y + 6, { align: "center" });
-    doc.text("SKILLS", 24 + (pageW - 48) / 2, y + 6, { align: "center" });
-    doc.text("STAGES", 28 + 5 * (pageW - 48) / 6, y + 6, { align: "center" });
-
-    doc.setFontSize(11);
-    doc.setTextColor(40, 40, 40);
-    doc.text(`${rm.totalMonths} months`, 20 + (pageW - 48) / 6, y + 14, { align: "center" });
-    doc.text(`${rm.requiredSkills.length} skills`, 24 + (pageW - 48) / 2, y + 14, { align: "center" });
-    doc.text(`${rm.stages.length} stages`, 28 + 5 * (pageW - 48) / 6, y + 14, { align: "center" });
-    y += 30;
-
-    // ── Required Skills ──
     drawSectionHeader("Required Skills", "⚡");
-
     rm.requiredSkills.forEach((sk, i) => {
       checkPage(16);
-      const isEven = i % 2 === 0;
-      if (isEven) {
-        doc.setFillColor(250, 248, 255);
-        doc.roundedRect(22, y - 3, pageW - 44, 12, 1.5, 1.5, "F");
-      }
-      // Skill name
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(50, 30, 120);
-      doc.text(sk.name, 28, y + 3);
-      // Level badge
-      const levelColor = sk.level === "Essential" ? [220, 50, 50] : sk.level === "Important" ? [200, 150, 20] : [50, 160, 80];
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(levelColor[0], levelColor[1], levelColor[2]);
-      doc.text(`[${sk.level}]`, 85, y + 3);
-      // Description
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 100, 100);
-      doc.text(sk.description, 110, y + 3, { maxWidth: pageW - 140 });
-      y += 12;
+      if (i % 2 === 0) { doc.setFillColor(250, 248, 255); doc.roundedRect(22, y - 3, pageW - 44, 12, 1.5, 1.5, "F"); }
+      doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(50, 30, 120); doc.text(sk.name, 28, y + 3);
+      const lc = sk.level === "Essential" ? [220, 50, 50] : sk.level === "Important" ? [200, 150, 20] : [50, 160, 80];
+      doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.setTextColor(lc[0], lc[1], lc[2]); doc.text(`[${sk.level}]`, 85, y + 3);
+      doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(100, 100, 100);
+      doc.text(sk.description, 110, y + 3, { maxWidth: pageW - 140 }); y += 12;
     });
     y += 6;
 
-    // ── Learning Stages with Topics ──
     rm.stages.forEach((stage, si) => {
       checkPage(22);
-
-      // Stage header with number badge
-      doc.setFillColor(120, 80, 220);
-      doc.circle(28, y + 3, 5, "F");
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(255, 255, 255);
+      doc.setFillColor(120, 80, 220); doc.circle(28, y + 3, 5, "F");
+      doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
       doc.text(`${si + 1}`, 28, y + 5, { align: "center" });
-
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(50, 30, 120);
+      doc.setFontSize(13); doc.setFont("helvetica", "bold"); doc.setTextColor(50, 30, 120);
       doc.text(stage.title, 38, y + 5);
+      doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(140, 140, 140);
+      doc.text(`(${stage.duration})`, 38 + doc.getTextWidth(stage.title) + 4, y + 5); y += 14;
 
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(140, 140, 140);
-      doc.text(`(${stage.duration})`, 38 + doc.getTextWidth(stage.title) + 4, y + 5);
-      y += 14;
-
-      // Topics
       stage.topics.forEach((topic) => {
         checkPage(18);
-        // Topic card
-        doc.setFillColor(248, 246, 255);
         const topicDesc = doc.splitTextToSize(topic.description, pageW - 70);
         const cardH = topicDesc.length * 4.5 + 10;
-        doc.roundedRect(30, y - 2, pageW - 54, cardH, 2, 2, "F");
-
-        // Left accent bar
-        doc.setFillColor(160, 120, 240);
-        doc.rect(30, y - 2, 2, cardH, "F");
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(60, 40, 140);
+        doc.setFillColor(248, 246, 255); doc.roundedRect(30, y - 2, pageW - 54, cardH, 2, 2, "F");
+        doc.setFillColor(160, 120, 240); doc.rect(30, y - 2, 2, cardH, "F");
+        doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(60, 40, 140);
         doc.text(`▪ ${topic.name}`, 36, y + 4);
-
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(80, 80, 80);
-        doc.text(topicDesc, 36, y + 10);
-        y += cardH + 4;
+        doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(80, 80, 80);
+        doc.text(topicDesc, 36, y + 10); y += cardH + 4;
       });
 
-      // Connector line between stages
       if (si < rm.stages.length - 1) {
-        checkPage(8);
-        doc.setDrawColor(200, 180, 255);
-        doc.setLineWidth(0.3);
-        doc.setLineDashPattern([2, 2], 0);
-        doc.line(28, y, 28, y + 6);
-        doc.setLineDashPattern([], 0);
-        y += 8;
+        checkPage(8); doc.setDrawColor(200, 180, 255); doc.setLineWidth(0.3);
+        doc.setLineDashPattern([2, 2], 0); doc.line(28, y, 28, y + 6);
+        doc.setLineDashPattern([], 0); y += 8;
       }
     });
 
-    // ── Footer Page ──
-    doc.addPage();
-    drawPageBorder();
-
-    doc.setFillColor(120, 80, 220);
-    doc.roundedRect(30, 60, pageW - 60, 50, 6, 6, "F");
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
+    doc.addPage(); drawPageBorder();
+    doc.setFillColor(120, 80, 220); doc.roundedRect(30, 60, pageW - 60, 50, 6, 6, "F");
+    doc.setFontSize(20); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
     doc.text("You're ready to begin!", pageW / 2, 82, { align: "center" });
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11); doc.setFont("helvetica", "normal");
     doc.text("Master these skills & topics step by step.", pageW / 2, 96, { align: "center" });
-
-    doc.setFontSize(9);
-    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(9); doc.setTextColor(150, 150, 150);
     doc.text("Generated by CareerCompass AI", pageW / 2, 130, { align: "center" });
     doc.text(new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }), pageW / 2, 138, { align: "center" });
 
-    // Page numbers
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(180, 180, 180);
+      doc.setPage(i); doc.setFontSize(8); doc.setTextColor(180, 180, 180);
       doc.text(`Page ${i} of ${totalPages}`, pageW / 2, pageH - 12, { align: "center" });
     }
-
     doc.save(`${rm.career.replace(/\s+/g, "_")}_Roadmap.pdf`);
     toast({ title: "PDF Downloaded!", description: `Your ${rm.career} roadmap has been saved.` });
   };
-
 
   const selectCareer = async (career: string) => {
     setSelectedCareer(career);
     setShowDropdown(false);
     setLoadingRoadmap(true);
     setRoadmap(null);
+    setExpandedStages(new Set());
+    setExpandedTopics(new Set());
     try {
       const { data, error } = await supabase.functions.invoke("career-roadmap", {
         body: { career, action: "get_roadmap" },
       });
       if (error) throw error;
       setRoadmap(data.result);
+      // Auto-expand first stage
+      setExpandedStages(new Set([0]));
       if (user) {
         saveActivity({
           userId: user.id,
@@ -388,7 +343,7 @@ export default function CareerRoadmapPage() {
       }
     } catch (e: any) {
       console.error(e);
-      toast({ title: "Error", description: "Failed to generate roadmap.", variant: "destructive" });
+      toast({ title: "Error", description: e.message || "Failed to generate roadmap.", variant: "destructive" });
     } finally {
       setLoadingRoadmap(false);
     }
@@ -401,15 +356,30 @@ export default function CareerRoadmapPage() {
     return matchCat && matchSearch;
   });
 
+  // ── Loading animation phrases ──
+  const loadingPhrases = [
+    "Analyzing current job market trends...",
+    "Fetching real salary data...",
+    "Identifying top skills in demand...",
+    "Building your personalized roadmap...",
+    "Finding the best learning resources...",
+  ];
+  const [loadingPhrase, setLoadingPhrase] = useState(0);
+  useEffect(() => {
+    if (!loadingRoadmap) return;
+    const interval = setInterval(() => setLoadingPhrase(p => (p + 1) % loadingPhrases.length), 2500);
+    return () => clearInterval(interval);
+  }, [loadingRoadmap]);
+
   return (
     <div className="page-container">
       <div className="mb-6"><BackButton /></div>
-      <PageHeader icon={<Map className="h-7 w-7" />} title="AI Career Roadmap" subtitle="Choose what you want to become — get a real-time AI-generated roadmap with skills, topics & resources." />
+      <PageHeader icon={<Map className="h-7 w-7" />} title="AI Career Roadmap" subtitle="Get a real-time AI-generated roadmap with live market data, skills, topics & resources." />
 
       {!selectedCareer && !loadingRoadmap && (
         <div className="max-w-5xl mx-auto">
-          {/* Search bar with real-time AI dropdown */}
-          <AnimatedSection className="relative z-[60]" >
+          {/* Search bar */}
+          <AnimatedSection className="relative z-[60]">
             <div className="glass-card rounded-2xl p-5 mb-6" style={{ overflow: 'visible' }}>
               <div className="flex flex-col gap-4" style={{ overflow: 'visible' }}>
                 <div className="relative z-[70]" ref={searchRef}>
@@ -421,89 +391,97 @@ export default function CareerRoadmapPage() {
                     onFocus={() => { if (searchResults.length > 0) setShowDropdown(true); }}
                     onKeyDown={(e) => { if (e.key === "Enter" && searchQuery.trim()) selectCareer(searchQuery.trim()); }}
                     placeholder="Search any career path... (e.g., AI Engineer, UX Designer, Biomedical...)"
-                    className="w-full rounded-xl bg-muted pl-11 pr-12 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full rounded-xl bg-muted pl-11 pr-12 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-300"
                   />
                   {loadingSearch && (
-                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-primary" />
                   )}
 
-                  {/* AI-powered search dropdown */}
                   <AnimatePresence>
                     {showDropdown && searchResults.length > 0 && (
                       <motion.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        className="absolute z-[80] top-full mt-2 left-0 right-0 bg-card border border-border rounded-xl shadow-2xl max-h-72 overflow-y-auto"
+                        initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        className="absolute z-[80] top-full mt-2 left-0 right-0 bg-card/95 backdrop-blur-xl border border-primary/20 rounded-xl shadow-2xl shadow-primary/10 max-h-80 overflow-y-auto"
                       >
-                        <div className="px-3 py-2 border-b border-border">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-                            <Sparkles className="h-3 w-3" /> AI-suggested careers
+                        <div className="px-4 py-2.5 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
+                          <p className="text-[10px] uppercase tracking-wider text-primary font-bold flex items-center gap-1.5">
+                            <Sparkles className="h-3 w-3 animate-pulse" /> AI-suggested careers
                           </p>
                         </div>
                         {searchResults.map((r, i) => (
-                          <button
+                          <motion.button
                             key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
                             onClick={() => selectCareer(r.title)}
-                            className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors flex items-center gap-3 text-sm border-b border-border/50 last:border-0"
+                            className="w-full text-left px-4 py-3 hover:bg-primary/5 transition-all duration-200 flex items-center gap-3 text-sm border-b border-border/30 last:border-0 group"
                           >
-                            <span className="text-lg">{r.icon}</span>
+                            <span className="text-xl group-hover:scale-125 transition-transform duration-200">{r.icon}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{r.title}</p>
+                              <p className="font-semibold truncate group-hover:text-primary transition-colors">{r.title}</p>
                               <p className="text-xs text-muted-foreground truncate">{r.description}</p>
                             </div>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${categoryBg[r.category] || "bg-muted"}`}>
                               {r.category}
                             </span>
-                          </button>
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </motion.button>
                         ))}
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
 
-                {/* Category filter chips */}
                 <div className="flex gap-2 flex-wrap">
                   {allCategories.map((cat) => (
-                    <button
+                    <motion.button
                       key={cat}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => setFilterCategory(cat)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                         filterCategory === cat
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted border-border hover:border-primary/30"
+                          ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                          : "bg-muted border-border hover:border-primary/30 hover:bg-primary/5"
                       }`}
                     >
                       {cat}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
             </div>
           </AnimatedSection>
 
-          {/* Example career path cards — instant, no loading */}
+          {/* Career cards */}
           <div className="mb-4 flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
             <h3 className="font-display font-semibold text-sm text-muted-foreground">Popular Career Paths</h3>
+            <PulseDot color="bg-green-500" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((career, i) => (
               <AnimatedSection key={career.id} delay={i * 0.04}>
                 <motion.button
                   onClick={() => selectCareer(career.title)}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full text-left glass-card rounded-2xl overflow-hidden card-hover group"
+                  whileHover={{ scale: 1.03, y: -4 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full text-left glass-card rounded-2xl overflow-hidden group relative"
                 >
-                  <div className={`bg-gradient-to-r ${categoryColors[career.category] || "from-gray-500 to-gray-600"} p-3 flex items-center justify-between`}>
-                    <span className="text-2xl">{career.icon}</span>
-                    <span className="text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full text-white">{career.category}</span>
+                  {/* Hover glow */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-secondary/0 group-hover:from-primary/5 group-hover:to-secondary/5 transition-all duration-500 rounded-2xl" />
+                  <div className={`bg-gradient-to-r ${categoryColors[career.category] || "from-gray-500 to-gray-600"} p-3 flex items-center justify-between relative`}>
+                    <span className="text-2xl group-hover:scale-110 transition-transform duration-300">{career.icon}</span>
+                    <span className="text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full text-white backdrop-blur-sm">{career.category}</span>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-display font-semibold text-base mb-1 flex items-center gap-2">
+                  <div className="p-4 relative">
+                    <h3 className="font-display font-semibold text-base mb-1 flex items-center gap-2 group-hover:text-primary transition-colors duration-300">
                       {career.title}
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
                     </h3>
                     <p className="text-xs text-muted-foreground line-clamp-2">{career.description}</p>
                   </div>
@@ -514,21 +492,45 @@ export default function CareerRoadmapPage() {
 
           {filtered.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-muted-foreground text-sm">No matching careers found. Try searching above — AI will find related career paths!</p>
+              <p className="text-muted-foreground text-sm">No matching careers found. Try searching above!</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Loading roadmap */}
+      {/* Loading state */}
       {loadingRoadmap && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 max-w-3xl mx-auto">
-          <div className="relative w-16 h-16 mx-auto mb-6">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 max-w-lg mx-auto">
+          <div className="relative w-20 h-20 mx-auto mb-8">
             <div className="absolute inset-0 rounded-full border-4 border-muted" />
             <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+            <div className="absolute inset-2 rounded-full border-4 border-secondary/30 border-b-transparent animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+            </div>
           </div>
-          <h3 className="font-display font-semibold text-lg mb-2">Generating your roadmap...</h3>
-          <p className="text-muted-foreground text-sm">AI is building a personalized career roadmap for "{selectedCareer}"</p>
+          <h3 className="font-display font-bold text-xl mb-3">Generating your roadmap...</h3>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={loadingPhrase}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="text-muted-foreground text-sm"
+            >
+              {loadingPhrases[loadingPhrase]}
+            </motion.p>
+          </AnimatePresence>
+          <div className="mt-6 flex justify-center gap-1">
+            {[0, 1, 2, 3, 4].map(i => (
+              <motion.div
+                key={i}
+                animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                className="w-2 h-2 rounded-full bg-primary"
+              />
+            ))}
+          </div>
         </motion.div>
       )}
 
@@ -536,168 +538,447 @@ export default function CareerRoadmapPage() {
       <AnimatePresence>
         {roadmap && !loadingRoadmap && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-6">
-            <button
+            <motion.button
+              whileHover={{ x: -4 }}
               onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               <ArrowLeft className="h-4 w-4" /> Back to careers
-            </button>
+            </motion.button>
 
-            {/* Overview */}
-            <div className="glass-card rounded-2xl p-6">
-              <h2 className="font-display font-bold text-2xl mb-3 gradient-text">{roadmap.career}</h2>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-4">{roadmap.overview}</p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" /> Estimated: {roadmap.totalMonths} months to become job-ready
+            {/* Overview with market insights */}
+            <GlowCard>
+              <div className="p-6">
+                <motion.h2
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="font-display font-bold text-2xl mb-3 gradient-text flex items-center gap-3"
+                >
+                  {roadmap.career}
+                  <PulseDot color="bg-green-500" />
+                </motion.h2>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-4">{roadmap.overview}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" /> Estimated: {roadmap.totalMonths} months to become job-ready
+                </div>
               </div>
-            </div>
+            </GlowCard>
 
-            {/* Required Skills */}
-            <div className="glass-card rounded-2xl p-6">
-              <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-                <Wrench className="h-5 w-5 text-primary" /> Required Skills
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {roadmap.requiredSkills.map((skill) => (
-                  <div key={skill.name} className="p-3 rounded-xl bg-muted/50 border border-border">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-sm">{skill.name}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${levelColors[skill.level] || "bg-muted"}`}>{skill.level}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{skill.description}</p>
+            {/* Market Insights */}
+            {roadmap.marketInsights && (
+              <AnimatedSection delay={0.1}>
+                <GlowCard>
+                  <div className="bg-gradient-to-r from-primary/10 via-secondary/5 to-primary/10 p-4 border-b border-border/50">
+                    <h3 className="font-display font-semibold text-lg flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      Live Market Insights
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 font-bold flex items-center gap-1">
+                        <PulseDot color="bg-green-500" /> LIVE
+                      </span>
+                    </h3>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Stages */}
-            {roadmap.stages.map((stage, si) => (
-              <AnimatedSection key={si} delay={si * 0.1}>
-                <div className="glass-card rounded-2xl overflow-hidden">
-                  <div className="p-4 flex items-center gap-3" style={{ background: `linear-gradient(135deg, ${stage.color}22, ${stage.color}11)`, borderBottom: `2px solid ${stage.color}44` }}>
-                    <span className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white" style={{ background: stage.color }}>{si + 1}</span>
-                    <div>
-                      <h3 className="font-display font-bold text-base">{stage.title}</h3>
-                      <p className="text-xs text-muted-foreground">{stage.duration}</p>
-                    </div>
+                  <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
+                      <DollarSign className="h-5 w-5 mx-auto mb-1 text-green-400 group-hover:animate-bounce" />
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Salary (USD)</p>
+                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.averageSalaryUSD}</p>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
+                      <DollarSign className="h-5 w-5 mx-auto mb-1 text-amber-400 group-hover:animate-bounce" />
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Salary (INR)</p>
+                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.averageSalaryINR}</p>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
+                      <Zap className="h-5 w-5 mx-auto mb-1 text-primary group-hover:animate-pulse" />
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Demand</p>
+                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.demandLevel}</p>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
+                      <TrendingUp className="h-5 w-5 mx-auto mb-1 text-emerald-400 group-hover:animate-bounce" />
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Growth</p>
+                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.growthRate}</p>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
+                      <Briefcase className="h-5 w-5 mx-auto mb-1 text-blue-400 group-hover:animate-bounce" />
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Openings</p>
+                      <p className="text-sm font-bold mt-1">{roadmap.marketInsights.jobOpenings}</p>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} className="p-3 rounded-xl bg-muted/50 border border-border text-center group hover:border-primary/30 transition-all">
+                      <Building2 className="h-5 w-5 mx-auto mb-1 text-violet-400 group-hover:animate-bounce" />
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Top Companies</p>
+                      <p className="text-xs font-medium mt-1 line-clamp-2">{roadmap.marketInsights.topHiringCompanies?.slice(0, 3).join(", ")}</p>
+                    </motion.div>
                   </div>
+                </GlowCard>
+              </AnimatedSection>
+            )}
 
-                  <div className="p-6 space-y-6">
-                    {/* Topics */}
-                    <div>
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-                        <BookOpen className="h-3.5 w-3.5" /> Topics to Learn
-                      </h4>
-                      <div className="space-y-3">
-                        {stage.topics.map((topic, ti) => (
-                          <div key={ti} className="p-4 rounded-xl bg-muted/30 border border-border">
-                            <p className="font-semibold text-sm mb-1">{topic.name}</p>
-                            <p className="text-xs text-muted-foreground mb-3">{topic.description}</p>
-                            <div className="flex flex-wrap items-center gap-2">
-                              {topic.resources.map((r, ri) => (
-                                <span key={ri} className="text-xs bg-primary/5 text-primary px-2 py-1 rounded-md flex items-center gap-1">
-                                  <ExternalLink className="h-3 w-3" /> {r}
-                                </span>
-                              ))}
-                            </div>
-                            {/* YouTube links in 3 languages */}
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {[
-                                { lang: "English", flag: "🇬🇧", suffix: " tutorial english" },
-                                { lang: "Hindi", flag: "🇮🇳", suffix: " tutorial hindi" },
-                                { lang: "Spanish", flag: "🇪🇸", suffix: " tutorial español" },
-                              ].map((l) => (
-                                <a
-                                  key={l.lang}
-                                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(topic.youtubeSearch + l.suffix)}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs bg-destructive/10 text-destructive px-2.5 py-1 rounded-md flex items-center gap-1.5 hover:bg-destructive/20 transition-colors"
-                                >
-                                  <Youtube className="h-3 w-3" />
-                                  <span>{l.flag}</span>
-                                  <span>{l.lang}</span>
-                                </a>
-                              ))}
-                            </div>
+            {/* Required Skills with sub-topics */}
+            <AnimatedSection delay={0.15}>
+              <GlowCard>
+                <div className="p-6">
+                  <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                    <Wrench className="h-5 w-5 text-primary" /> Required Skills
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {roadmap.requiredSkills.map((skill, i) => (
+                      <motion.div
+                        key={skill.name}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        whileHover={{ scale: 1.02, borderColor: "hsl(var(--primary))" }}
+                        className="p-3 rounded-xl bg-muted/50 border border-border cursor-pointer transition-all group hover:shadow-lg hover:shadow-primary/5"
+                        onClick={() => toggleTopic(`skill-${i}`)}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-sm group-hover:text-primary transition-colors">{skill.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-xs px-2 py-0.5 rounded-full border ${levelColors[skill.level] || "bg-muted"}`}>{skill.level}</span>
+                            {skill.subTopics && skill.subTopics.length > 0 && (
+                              <motion.span animate={{ rotate: expandedTopics.has(`skill-${i}`) ? 180 : 0 }}>
+                                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                              </motion.span>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Projects */}
-                    {stage.projects.length > 0 && (
-                      <div>
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
-                          <FolderOpen className="h-3.5 w-3.5" /> Hands-On Projects
-                        </h4>
-                        <ul className="space-y-1">
-                          {stage.projects.map((p, pi) => (
-                            <li key={pi} className="text-sm text-muted-foreground flex items-start gap-2">
-                              <span className="text-primary mt-0.5">▸</span> {p}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{skill.description}</p>
+                        <AnimatePresence>
+                          {expandedTopics.has(`skill-${i}`) && skill.subTopics && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
+                                {skill.subTopics.map((st, j) => (
+                                  <motion.p
+                                    key={j}
+                                    initial={{ x: -10, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    transition={{ delay: j * 0.05 }}
+                                    className="text-xs text-muted-foreground flex items-center gap-1.5"
+                                  >
+                                    <CheckCircle2 className="h-3 w-3 text-primary shrink-0" /> {st}
+                                  </motion.p>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
+              </GlowCard>
+            </AnimatedSection>
+
+            {/* Stages with accordion */}
+            {roadmap.stages.map((stage, si) => (
+              <AnimatedSection key={si} delay={si * 0.08}>
+                <GlowCard>
+                  {/* Stage header - clickable */}
+                  <motion.button
+                    onClick={() => toggleStage(si)}
+                    className="w-full p-4 flex items-center gap-3 text-left hover:bg-muted/20 transition-colors"
+                    style={{
+                      background: `linear-gradient(135deg, ${stage.color}15, ${stage.color}05)`,
+                      borderBottom: expandedStages.has(si) ? `2px solid ${stage.color}44` : "none",
+                    }}
+                  >
+                    <motion.span
+                      whileHover={{ rotate: 10, scale: 1.1 }}
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-lg"
+                      style={{ background: stage.color, boxShadow: `0 4px 15px ${stage.color}40` }}
+                    >
+                      {si + 1}
+                    </motion.span>
+                    <div className="flex-1">
+                      <h3 className="font-display font-bold text-base">{stage.title}</h3>
+                      <p className="text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" /> {stage.duration}
+                        <span className="text-muted-foreground/50">•</span>
+                        {stage.topics.length} topics
+                        <span className="text-muted-foreground/50">•</span>
+                        {stage.projects.length} projects
+                      </p>
+                    </div>
+                    <motion.div animate={{ rotate: expandedStages.has(si) ? 180 : 0 }} transition={{ duration: 0.3 }}>
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    </motion.div>
+                  </motion.button>
+
+                  <AnimatePresence>
+                    {expandedStages.has(si) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.4, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-6 space-y-6">
+                          {/* Milestones */}
+                          {stage.milestones && stage.milestones.length > 0 && (
+                            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
+                              <p className="text-xs font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-1.5">
+                                <Target className="h-3.5 w-3.5" /> Stage Milestones
+                              </p>
+                              <div className="space-y-1">
+                                {stage.milestones.map((m, mi) => (
+                                  <p key={mi} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                    <Star className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" /> {m}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Topics */}
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                              <BookOpen className="h-3.5 w-3.5" /> Topics to Learn
+                            </h4>
+                            <div className="space-y-3">
+                              {stage.topics.map((topic, ti) => {
+                                const topicKey = `${si}-${ti}`;
+                                return (
+                                  <motion.div
+                                    key={ti}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: ti * 0.08 }}
+                                    className="p-4 rounded-xl bg-muted/30 border border-border hover:border-primary/20 transition-all group/topic"
+                                  >
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p className="font-semibold text-sm group-hover/topic:text-primary transition-colors">{topic.name}</p>
+                                          {topic.difficulty && (
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${difficultyColors[topic.difficulty] || "bg-muted"}`}>
+                                              {topic.difficulty}
+                                            </span>
+                                          )}
+                                          {topic.estimatedHours && (
+                                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                              <Clock className="h-2.5 w-2.5" /> {topic.estimatedHours}h
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {topic.subTopics && topic.subTopics.length > 0 && (
+                                        <motion.button
+                                          whileHover={{ scale: 1.1 }}
+                                          whileTap={{ scale: 0.9 }}
+                                          onClick={() => toggleTopic(topicKey)}
+                                          className="p-1 rounded-md hover:bg-muted transition-colors"
+                                        >
+                                          <motion.div animate={{ rotate: expandedTopics.has(topicKey) ? 180 : 0 }}>
+                                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                          </motion.div>
+                                        </motion.button>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mb-3">{topic.description}</p>
+
+                                    {/* Sub-topics */}
+                                    <AnimatePresence>
+                                      {expandedTopics.has(topicKey) && topic.subTopics && (
+                                        <motion.div
+                                          initial={{ height: 0, opacity: 0 }}
+                                          animate={{ height: "auto", opacity: 1 }}
+                                          exit={{ height: 0, opacity: 0 }}
+                                          className="overflow-hidden mb-3"
+                                        >
+                                          <div className="p-3 rounded-lg bg-background/50 border border-border/50 space-y-1.5">
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1 flex items-center gap-1">
+                                              <Brain className="h-3 w-3" /> Key Concepts
+                                            </p>
+                                            {topic.subTopics.map((st, j) => (
+                                              <motion.p
+                                                key={j}
+                                                initial={{ opacity: 0, x: -8 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: j * 0.04 }}
+                                                className="text-xs text-muted-foreground flex items-center gap-1.5"
+                                              >
+                                                <CheckCircle2 className="h-3 w-3 text-green-400 shrink-0" /> {st}
+                                              </motion.p>
+                                            ))}
+                                          </div>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+
+                                    {/* Resources */}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      {topic.resources.map((r, ri) => (
+                                        <motion.span
+                                          key={ri}
+                                          whileHover={{ scale: 1.05 }}
+                                          className="text-xs bg-primary/5 text-primary px-2 py-1 rounded-md flex items-center gap-1 hover:bg-primary/10 transition-colors cursor-default"
+                                        >
+                                          <ExternalLink className="h-3 w-3" /> {r}
+                                        </motion.span>
+                                      ))}
+                                    </div>
+
+                                    {/* YouTube links */}
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      {[
+                                        { lang: "English", flag: "🇬🇧", suffix: " tutorial english" },
+                                        { lang: "Hindi", flag: "🇮🇳", suffix: " tutorial hindi" },
+                                        { lang: "Spanish", flag: "🇪🇸", suffix: " tutorial español" },
+                                      ].map((l) => (
+                                        <motion.a
+                                          key={l.lang}
+                                          whileHover={{ scale: 1.05, y: -1 }}
+                                          whileTap={{ scale: 0.95 }}
+                                          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(topic.youtubeSearch + l.suffix)}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs bg-destructive/10 text-destructive px-2.5 py-1 rounded-md flex items-center gap-1.5 hover:bg-destructive/20 transition-all"
+                                        >
+                                          <Youtube className="h-3 w-3" /> {l.flag} {l.lang}
+                                        </motion.a>
+                                      ))}
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Projects */}
+                          {stage.projects.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+                                <FolderOpen className="h-3.5 w-3.5" /> Hands-On Projects
+                              </h4>
+                              <ul className="space-y-1.5">
+                                {stage.projects.map((p, pi) => (
+                                  <motion.li
+                                    key={pi}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: pi * 0.1 }}
+                                    className="text-sm text-muted-foreground flex items-start gap-2 group hover:text-foreground transition-colors"
+                                  >
+                                    <span className="text-primary mt-0.5 group-hover:scale-125 transition-transform">▸</span> {p}
+                                  </motion.li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </GlowCard>
               </AnimatedSection>
             ))}
 
             {/* Certifications */}
             {roadmap.certifications?.length > 0 && (
               <AnimatedSection>
-                <div className="glass-card rounded-2xl p-6">
-                  <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-                    <Award className="h-5 w-5 text-primary" /> Recommended Certifications
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {roadmap.certifications.map((cert, ci) => (
-                      <div key={ci} className="p-3 rounded-xl bg-muted/50 border border-border text-center">
-                        <p className="font-semibold text-sm mb-1">{cert.name}</p>
-                        <p className="text-xs text-muted-foreground mb-2">{cert.provider}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${difficultyColors[cert.difficulty] || "bg-muted"}`}>
-                          {cert.difficulty}
-                        </span>
-                      </div>
-                    ))}
+                <GlowCard>
+                  <div className="p-6">
+                    <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                      <Award className="h-5 w-5 text-primary" /> Recommended Certifications
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {roadmap.certifications.map((cert, ci) => (
+                        <motion.div
+                          key={ci}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: ci * 0.08 }}
+                          whileHover={{ scale: 1.03, y: -2 }}
+                          className="p-3 rounded-xl bg-muted/50 border border-border text-center hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all group cursor-default"
+                        >
+                          <Award className="h-6 w-6 mx-auto mb-2 text-primary group-hover:animate-bounce" />
+                          <p className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">{cert.name}</p>
+                          <p className="text-xs text-muted-foreground mb-1">{cert.provider}</p>
+                          {cert.cost && <p className="text-[10px] text-muted-foreground mb-2">{cert.cost}</p>}
+                          <span className={`text-xs px-2 py-0.5 rounded-full border ${difficultyColors[cert.difficulty] || "bg-muted"}`}>
+                            {cert.difficulty}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </GlowCard>
+              </AnimatedSection>
+            )}
+
+            {/* Interview Topics */}
+            {roadmap.interviewTopics && roadmap.interviewTopics.length > 0 && (
+              <AnimatedSection delay={0.1}>
+                <GlowCard>
+                  <div className="p-6">
+                    <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-primary" /> Common Interview Topics
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {roadmap.interviewTopics.map((topic, i) => (
+                        <motion.span
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.06 }}
+                          whileHover={{ scale: 1.08, y: -2 }}
+                          className="px-3 py-1.5 rounded-lg bg-primary/5 text-primary border border-primary/10 text-sm font-medium hover:bg-primary/10 hover:border-primary/30 transition-all cursor-default"
+                        >
+                          {topic}
+                        </motion.span>
+                      ))}
+                    </div>
+                  </div>
+                </GlowCard>
               </AnimatedSection>
             )}
 
             {/* Action buttons */}
             <AnimatedSection delay={0.2}>
-              <div className="glass-card rounded-2xl p-6 space-y-4">
-                <h3 className="font-display font-semibold text-lg flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-primary" /> What's Next?
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  You now have a complete roadmap to become a <span className="font-semibold text-foreground">{roadmap.career}</span>. 
-                  Download this roadmap as a PDF to track your progress, or start preparing for interviews right away!
-                </p>
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <button
-                    onClick={() => generatePDF(roadmap)}
-                    className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" /> Download Roadmap PDF
-                  </button>
-                  <button
-                    onClick={() => navigate("/interview-coach")}
-                    className="px-6 py-3 rounded-xl font-semibold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2"
-                  >
-                    <MessageSquare className="h-4 w-4" /> Start Interview Prep
-                  </button>
-                  <button
-                    onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
-                    className="px-6 py-3 rounded-xl font-semibold text-sm bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" /> Explore Another Career
-                  </button>
+              <GlowCard>
+                <div className="p-6 space-y-4">
+                  <h3 className="font-display font-semibold text-lg flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5 text-primary" /> What's Next?
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    You now have a complete roadmap to become a <span className="font-semibold text-foreground">{roadmap.career}</span>.
+                    Download as PDF or start preparing for interviews!
+                  </p>
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => generatePDF(roadmap)}
+                      className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-lg shadow-primary/20"
+                    >
+                      <Download className="h-4 w-4" /> Download Roadmap PDF
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => navigate("/interview-coach")}
+                      className="px-6 py-3 rounded-xl font-semibold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2"
+                    >
+                      <MessageSquare className="h-4 w-4" /> Start Interview Prep
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
+                      className="px-6 py-3 rounded-xl font-semibold text-sm bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" /> Explore Another Career
+                    </motion.button>
+                  </div>
                 </div>
-              </div>
+              </GlowCard>
             </AnimatedSection>
           </motion.div>
         )}
