@@ -6,7 +6,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
-type AuthMode = "login" | "signup" | "magic-link";
+type AuthMode = "login" | "signup" | "magic-link" | "forgot";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
