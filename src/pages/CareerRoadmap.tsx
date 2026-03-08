@@ -118,6 +118,7 @@ export default function CareerRoadmapPage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
 
