@@ -25,6 +25,7 @@ export default function ATSScannerPage() {
   const [result, setResult] = useState<ATSResult | null>(null);
   const [step, setStep] = useState<"upload" | "jobdesc">("upload");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleFile = (f: File | null) => {
     if (!f) return;
