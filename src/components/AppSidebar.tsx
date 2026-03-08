@@ -1,7 +1,8 @@
-import { FileText, Search, TrendingUp, Compass, Brain, Mic, Linkedin, Map, LayoutDashboard, Home, Sun, Moon, Clock, LogIn, LogOut, User, Settings } from "lucide-react";
+import { FileText, Search, TrendingUp, Compass, Brain, Mic, Linkedin, Map, LayoutDashboard, Home, Sun, Moon, Clock, LogOut, User, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -35,7 +36,6 @@ export function AppSidebar() {
   const { state, setOpen } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
 
@@ -48,53 +48,85 @@ export function AppSidebar() {
     setOpen(false);
   };
 
+  const isActive = (url: string) => {
+    if (url === "/") return location.pathname === "/";
+    return location.pathname.startsWith(url);
+  };
+
   return (
     <Sidebar collapsible="offcanvas">
-      <SidebarContent>
+      <SidebarContent className="sidebar-premium">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-4 py-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg gradient-btn flex items-center justify-center">
+          <SidebarGroupLabel className="px-4 py-4">
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="w-8 h-8 rounded-xl gradient-btn flex items-center justify-center shadow-lg shadow-primary/30"
+              >
                 <Compass className="h-4 w-4" />
-              </div>
-              {!collapsed && <span className="font-display font-bold text-sm gradient-text">CareerCompass AI</span>}
+              </motion.div>
+              {!collapsed && (
+                <span className="font-display font-bold text-sm gradient-text">CareerCompass AI</span>
+              )}
             </div>
           </SidebarGroupLabel>
 
           <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      onClick={handleNavClick}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="px-2 space-y-0.5">
+              {navItems.map((item) => {
+                const active = isActive(item.url);
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={item.url === "/"}
+                        onClick={handleNavClick}
+                        className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 group
+                          ${active
+                            ? "text-primary bg-primary/10 border border-primary/20 shadow-[0_0_15px_-3px_hsl(var(--primary)/0.3)]"
+                            : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80 border border-transparent"
+                          }`}
+                        activeClassName=""
+                      >
+                        {/* Active indicator bar */}
+                        {active && (
+                          <motion.div
+                            layoutId="sidebar-active"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]"
+                            transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                          />
+                        )}
+                        <item.icon className={`h-4 w-4 shrink-0 transition-all duration-300 ${
+                          active
+                            ? "text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]"
+                            : "group-hover:text-primary group-hover:drop-shadow-[0_0_4px_hsl(var(--primary)/0.4)]"
+                        }`} />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 space-y-1">
-        {/* User info */}
+      <SidebarFooter className="p-3 space-y-1 border-t border-sidebar-border/50">
         {user && (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50 mb-1">
-            <div className="w-8 h-8 rounded-full gradient-btn flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/10 mb-1">
+            <div className="w-8 h-8 rounded-full gradient-btn flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
               <User className="h-4 w-4" />
             </div>
             {!collapsed && (
               <div className="min-w-0">
-                <p className="text-xs font-medium truncate">{user.email}</p>
-                <p className="text-xs text-sidebar-foreground/50">Signed in</p>
+                <p className="text-xs font-semibold truncate">{user.email}</p>
+                <p className="text-[10px] text-sidebar-foreground/40 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_4px_hsl(145,80%,55%)]" />
+                  Online
+                </p>
               </div>
             )}
           </div>
@@ -102,18 +134,22 @@ export function AppSidebar() {
 
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80 transition-all duration-300 w-full group"
         >
-          {dark ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+          {dark ? (
+            <Sun className="h-4 w-4 shrink-0 group-hover:text-amber-400 group-hover:drop-shadow-[0_0_6px_hsl(45,90%,55%/0.6)] transition-all" />
+          ) : (
+            <Moon className="h-4 w-4 shrink-0 group-hover:text-blue-400 group-hover:drop-shadow-[0_0_6px_hsl(220,70%,55%/0.6)] transition-all" />
+          )}
           {!collapsed && <span>{dark ? "Light Mode" : "Dark Mode"}</span>}
         </button>
 
         {user && (
           <button
             onClick={() => { signOut(); handleNavClick(); }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10 transition-colors w-full"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-all duration-300 w-full group"
           >
-            <LogOut className="h-4 w-4 shrink-0" />
+            <LogOut className="h-4 w-4 shrink-0 group-hover:drop-shadow-[0_0_6px_hsl(0,84%,60%/0.6)] transition-all" />
             {!collapsed && <span>Sign Out</span>}
           </button>
         )}

@@ -10,6 +10,7 @@ import HeaderNav from "@/components/HeaderNav";
 import GreetingBadge from "@/components/GreetingBadge";
 import NotificationBell from "@/components/NotificationBell";
 import AnimatedRoutes from "@/components/AnimatedRoutes";
+import ParticleBackground from "@/components/ParticleBackground";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
         <AuthProvider>
           <SidebarProvider defaultOpen={false}>
             <div className="min-h-screen flex w-full">
+              <ParticleBackground />
               <AppSidebar />
               <div className="flex-1 flex flex-col min-w-0">
                 <header className="sticky top-0 z-40 h-14 flex items-center border-b border-border/50 bg-background/60 backdrop-blur-xl px-4 header-glow">
