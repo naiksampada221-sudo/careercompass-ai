@@ -735,16 +735,15 @@ export default function CareerRoadmapPage() {
                     className="px-6 py-3 rounded-xl font-semibold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2"
                   >
                     <MessageSquare className="h-4 w-4" /> Start Interview Prep
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.03, y: -1 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
-                      className="px-6 py-3 rounded-xl font-semibold text-sm bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2"
-                    >
-                      <ArrowLeft className="h-4 w-4" /> Explore Another Career
-                    </motion.button>
-                  </div>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.03, y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
+                    className="px-6 py-3 rounded-xl font-semibold text-sm bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Explore Another Career
+                  </motion.button>
                 </div>
               </GlowCard>
             </AnimatedSection>
