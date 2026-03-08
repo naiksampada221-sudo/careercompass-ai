@@ -7,6 +7,8 @@ import ScoreCircle from "@/components/ScoreCircle";
 import AnimatedSection from "@/components/AnimatedSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { saveActivity } from "@/lib/saveActivity";
 
 interface ATSResult {
   score: number;
