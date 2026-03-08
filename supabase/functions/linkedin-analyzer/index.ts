@@ -149,9 +149,58 @@ const containsEvidenceTerm = (evidenceText: string, term: string) => {
   return e.includes(t);
 };
 
-const normalizeAnalysis = (raw: any, evidenceText: string): AnalysisResult => {
+const SKILL_CANDIDATES = [
+  "python", "sql", "power bi", "tableau", "machine learning", "deep learning", "data analysis", "data analytics",
+  "data visualization", "excel", "statistics", "numpy", "pandas", "scikit learn", "tensorflow", "pytorch",
+  "nlp", "natural language processing", "computer vision", "api integration", "web scraping", "beautifulsoup",
+  "requests", "file handling", "object oriented programming", "data science", "artificial intelligence", "ai",
+  "java", "javascript", "typescript", "react", "node.js", "c", "c++", "git", "github", "aws",
+  "azure", "gcp", "docker", "linux", "html", "css", "flask", "django",
+];
+
+const canonicalDisplaySkill = (skill: string) =>
+  skill
+    .split(" ")
+    .map((part) => (part.length <= 3 && part === part.toLowerCase() ? part.toUpperCase() : part[0].toUpperCase() + part.slice(1)))
+    .join(" ")
+    .replace("Ai", "AI")
+    .replace("Sql", "SQL")
+    .replace("Nlp", "NLP")
+    .replace("Aws", "AWS")
+    .replace("Gcp", "GCP")
+    .replace("Power Bi", "Power BI")
+    .replace("Scikit Learn", "scikit-learn")
+    .replace("Node.js", "Node.js");
+
+const extractExplicitSkillsFromEvidence = (evidenceText: string) => {
+  const canonicalEvidence = ` ${canonicalToken(evidenceText)} `;
+  const found = new Set<string>();
+
+  for (const candidate of SKILL_CANDIDATES) {
+    const token = canonicalToken(candidate);
+    if (!token) continue;
+    const needle = ` ${token} `;
+    if (canonicalEvidence.includes(needle)) {
+      found.add(canonicalDisplaySkill(token));
+    }
+  }
+
+  const allowedTokens = new Set(SKILL_CANDIDATES.map((candidate) => canonicalToken(candidate)));
+  const hashtagSkills = Array.from(evidenceText.matchAll(/#([a-zA-Z][a-zA-Z0-9]+)/g))
+    .map((m) => canonicalToken(m[1]))
+    .filter((token) => token.length > 2 && token.length < 25 && allowedTokens.has(token))
+    .map((token) => canonicalDisplaySkill(token));
+
+  for (const tagSkill of hashtagSkills) found.add(tagSkill);
+
+  return Array.from(found).slice(0, 20);
+};
+
+const normalizeAnalysis = (raw: any, evidenceText: string, explicitSkills: string[]): AnalysisResult => {
+  const explicitSkillSet = new Set(explicitSkills.map((skill) => canonicalToken(skill)));
   const rawSkills = sanitizeTextArray(raw?.skills, 20);
-  const verifiedSkills = rawSkills.filter((skill) => containsEvidenceTerm(evidenceText, skill));
+  const verifiedSkills = rawSkills.filter((skill) => explicitSkillSet.has(canonicalToken(skill)));
+  const finalSkills = verifiedSkills.length > 0 ? verifiedSkills : explicitSkills;
 
   const profileName = String(raw?.profile_name || "").trim();
   const profileNameVerified = profileName && containsEvidenceTerm(evidenceText, profileName) ? profileName : "";
@@ -163,7 +212,7 @@ const normalizeAnalysis = (raw: any, evidenceText: string): AnalysisResult => {
     experience_score: clampScore(raw?.experience_score),
     skills_score: clampScore(raw?.skills_score),
     network_score: clampScore(raw?.network_score),
-    skills: verifiedSkills,
+    skills: finalSkills,
     strengths: sanitizeTextArray(raw?.strengths, 8),
     weaknesses: sanitizeTextArray(raw?.weaknesses, 8),
     suggestions: Array.isArray(raw?.suggestions)
@@ -486,7 +535,8 @@ Return valid JSON only, with this exact structure:
 
     const aiData = await response.json();
     const content = String(aiData?.choices?.[0]?.message?.content || "");
-    const parsed = normalizeAnalysis(parseAiJson(content), evidenceText);
+    const explicitSkills = extractExplicitSkillsFromEvidence(evidenceText);
+    const parsed = normalizeAnalysis(parseAiJson(content), evidenceText, explicitSkills);
 
     return toJson({
       success: true,
