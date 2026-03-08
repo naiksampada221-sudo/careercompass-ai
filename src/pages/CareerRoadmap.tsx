@@ -83,6 +83,28 @@ const difficultyColors: Record<string, string> = {
   Advanced: "bg-red-500/10 text-red-400",
 };
 
+// Instant example career paths — shown immediately, no API call needed
+const exampleCareers: CareerPath[] = [
+  { id: "data-scientist", title: "Data Scientist", icon: "📊", category: "Tech", description: "Analyze complex data to help organizations make better decisions using ML & statistics." },
+  { id: "full-stack-dev", title: "Full Stack Developer", icon: "💻", category: "Tech", description: "Build complete web applications from frontend to backend and deployment." },
+  { id: "ml-engineer", title: "ML Engineer", icon: "🤖", category: "Tech", description: "Design and deploy machine learning models into production systems." },
+  { id: "cloud-architect", title: "Cloud Architect", icon: "☁️", category: "Tech", description: "Design and manage scalable cloud infrastructure on AWS, GCP, or Azure." },
+  { id: "cybersecurity-analyst", title: "Cybersecurity Analyst", icon: "🔒", category: "Tech", description: "Protect systems and networks from cyber threats and vulnerabilities." },
+  { id: "devops-engineer", title: "DevOps Engineer", icon: "⚙️", category: "Engineering", description: "Automate development pipelines and manage infrastructure as code." },
+  { id: "ui-ux-designer", title: "UI/UX Designer", icon: "🎨", category: "Creative", description: "Design intuitive and beautiful user interfaces and experiences." },
+  { id: "product-manager", title: "Product Manager", icon: "📋", category: "Business", description: "Lead product strategy, roadmap, and cross-functional team collaboration." },
+  { id: "data-engineer", title: "Data Engineer", icon: "🔧", category: "Engineering", description: "Build and maintain data pipelines and warehousing infrastructure." },
+  { id: "ai-researcher", title: "AI Researcher", icon: "🧠", category: "Science", description: "Push the boundaries of artificial intelligence through novel research." },
+  { id: "mobile-developer", title: "Mobile Developer", icon: "📱", category: "Tech", description: "Build native and cross-platform mobile apps for iOS and Android." },
+  { id: "blockchain-dev", title: "Blockchain Developer", icon: "⛓️", category: "Tech", description: "Build decentralized applications and smart contracts." },
+  { id: "game-developer", title: "Game Developer", icon: "🎮", category: "Creative", description: "Create interactive games using Unity, Unreal, or custom engines." },
+  { id: "biotech-scientist", title: "Biotech Scientist", icon: "🧬", category: "Science", description: "Apply technology to biological systems for medical and agricultural advances." },
+  { id: "healthcare-analyst", title: "Healthcare Data Analyst", icon: "🏥", category: "Healthcare", description: "Analyze health data to improve patient outcomes and operational efficiency." },
+  { id: "digital-marketer", title: "Digital Marketer", icon: "📈", category: "Business", description: "Drive growth through SEO, social media, paid ads, and content strategy." },
+  { id: "robotics-engineer", title: "Robotics Engineer", icon: "🦾", category: "Engineering", description: "Design and build robotic systems combining hardware and software." },
+  { id: "quant-analyst", title: "Quantitative Analyst", icon: "📐", category: "Business", description: "Use mathematical models to analyze financial markets and manage risk." },
+];
+
 export default function CareerRoadmapPage() {
   const [careers, setCareers] = useState<CareerPath[]>([]);
   const [loadingCareers, setLoadingCareers] = useState(true);
