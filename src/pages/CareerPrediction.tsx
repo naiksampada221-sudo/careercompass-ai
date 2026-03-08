@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { TrendingUp, Plus, X, Sparkles, Briefcase, DollarSign, BarChart3, Zap, BookOpen, ChevronDown, ChevronUp, Loader2, Search, Building2, Users, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Plus, X, Sparkles, Briefcase, DollarSign, BarChart3, Zap, BookOpen, ChevronDown, ChevronUp, Loader2, Search, Building2, Users, ArrowUpRight, ExternalLink, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/BackButton";
