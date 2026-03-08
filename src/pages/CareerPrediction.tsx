@@ -883,7 +883,122 @@ export default function CareerPredictionPage() {
               })}
             </div>
 
-            {/* Try again */}
+            {/* ===== LIVE JOB LISTINGS FROM GOOGLE ===== */}
+            {liveJobs.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="glass-card rounded-2xl p-5 overflow-hidden"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-primary/10">
+                      <Briefcase className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-display font-semibold text-sm">Live Job Listings</h3>
+                      <p className="text-[10px] text-muted-foreground">Real-time from Google Jobs</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <PulseDot />
+                    <span className="text-xs font-bold text-primary">{totalJobsFound}+ jobs found</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5">
+                  {liveJobs.map((job, i) => (
+                    <motion.a
+                      key={i}
+                      href={job.link || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      initial={{ opacity: 0, x: -15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.7 + i * 0.08 }}
+                      whileHover={{ scale: 1.01, x: 4, boxShadow: "0 4px 20px -5px hsla(258, 90%, 62%, 0.15)" }}
+                      className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border hover:border-primary/30 transition-all group/job cursor-pointer block"
+                    >
+                      {job.thumbnail ? (
+                        <img src={job.thumbnail} alt={job.company} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-border" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-semibold truncate group-hover/job:text-primary transition-colors">{job.title}</h4>
+                        <p className="text-xs text-muted-foreground truncate">{job.company}</p>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                          {job.location && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-2.5 w-2.5" /> {job.location}
+                            </span>
+                          )}
+                          {job.posted && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-2.5 w-2.5" /> {job.posted}
+                            </span>
+                          )}
+                          {job.salary && (
+                            <span className="text-[10px] text-primary font-semibold flex items-center gap-1">
+                              <IndianRupee className="h-2.5 w-2.5" /> {job.salary}
+                            </span>
+                          )}
+                        </div>
+                        {job.via && (
+                          <span className="text-[9px] text-muted-foreground/60 mt-1 block">{job.via}</span>
+                        )}
+                      </div>
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground/0 group-hover/job:text-primary shrink-0 transition-all mt-1" />
+                    </motion.a>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Per-role live jobs in top prediction */}
+            {predictions[0]?.live_jobs && predictions[0].live_jobs.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="glass-card rounded-2xl p-5"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Award className="h-4 w-4 text-primary" />
+                  <h3 className="font-display font-semibold text-sm">
+                    Live "{predictions[0].role}" Jobs
+                  </h3>
+                  {predictions[0].live_job_count && (
+                    <span className="ml-auto text-xs font-bold text-primary">{predictions[0].live_job_count}+ openings</span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {predictions[0].live_jobs.slice(0, 3).map((job, i) => (
+                    <motion.a
+                      key={i}
+                      href={job.link || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      whileHover={{ x: 3 }}
+                      className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 border border-border hover:border-primary/20 transition-all group/rjob block"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <Briefcase className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate group-hover/rjob:text-primary transition-colors">{job.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{job.company} • {job.location}</p>
+                      </div>
+                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/0 group-hover/rjob:text-primary transition-all" />
+                    </motion.a>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
