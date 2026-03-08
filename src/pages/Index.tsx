@@ -1,7 +1,11 @@
 import { Link } from "react-router-dom";
 import { motion, useMotionValue, useSpring } from "framer-motion";
-import { FileText, Search, Brain, TrendingUp, Compass, ArrowRight, Sparkles, Upload, Target, GraduationCap, Mic, Star, Shield, Zap, ChevronRight } from "lucide-react";
+import { FileText, Search, Brain, TrendingUp, Compass, ArrowRight, Sparkles, Upload, Target, GraduationCap, Mic, Star, Shield, Zap, ChevronRight, Heart, Globe } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
+import TextReveal from "@/components/TextReveal";
+import TypingText from "@/components/TypingText";
+import AnimatedCounter from "@/components/AnimatedCounter";
+import MagneticButton from "@/components/MagneticButton";
 import { useRef } from "react";
 
 const features = [
