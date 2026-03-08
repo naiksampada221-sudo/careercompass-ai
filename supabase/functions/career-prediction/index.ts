@@ -28,16 +28,27 @@ async function fetchGoogleJobs(query: string, apiKey: string): Promise<{ total: 
     const jobResults = data.jobs_results || [];
     const totalStr = data.search_information?.total_results || jobResults.length;
 
-    const jobs = jobResults.slice(0, 5).map((j: any) => ({
-      title: j.title || "",
-      company: j.company_name || "",
-      location: j.location || "",
-      via: j.via || "",
-      posted: j.detected_extensions?.posted_at || "",
-      salary: j.detected_extensions?.salary || "",
-      link: j.share_link || j.related_links?.[0]?.link || "",
-      thumbnail: j.thumbnail || "",
-    }));
+    const jobs = jobResults.slice(0, 5).map((j: any) => {
+      // Get the best apply link: prefer apply_options (direct apply URLs), then job_highlights links, then share_link
+      const applyOptions = j.apply_options || [];
+      const bestApplyLink = applyOptions[0]?.link || j.share_link || j.related_links?.[0]?.link || "";
+      const applyLinks = applyOptions.slice(0, 3).map((opt: any) => ({
+        platform: (opt.title || "").replace("Apply on ", "").replace("Apply via ", ""),
+        url: opt.link || "",
+      }));
+
+      return {
+        title: j.title || "",
+        company: j.company_name || "",
+        location: j.location || "",
+        via: j.via || "",
+        posted: j.detected_extensions?.posted_at || "",
+        salary: j.detected_extensions?.salary || "",
+        link: bestApplyLink,
+        apply_links: applyLinks,
+        thumbnail: j.thumbnail || "",
+      };
+    });
 
     return { total: typeof totalStr === "number" ? totalStr : jobResults.length, jobs };
   } catch (e) {

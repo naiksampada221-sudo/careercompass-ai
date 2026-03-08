@@ -19,6 +19,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface ApplyLink {
+  platform: string;
+  url: string;
+}
+
 interface LiveJob {
   title: string;
   company: string;
@@ -27,6 +32,7 @@ interface LiveJob {
   posted: string;
   salary: string;
   link: string;
+  apply_links: ApplyLink[];
   thumbnail: string;
 }
 
@@ -907,52 +913,79 @@ export default function CareerPredictionPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {liveJobs.map((job, i) => (
-                    <motion.a
+                    <motion.div
                       key={i}
-                      href={job.link || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       initial={{ opacity: 0, x: -15 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.7 + i * 0.08 }}
-                      whileHover={{ scale: 1.01, x: 4, boxShadow: "0 4px 20px -5px hsla(258, 90%, 62%, 0.15)" }}
-                      className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border hover:border-primary/30 transition-all group/job cursor-pointer block"
+                      whileHover={{ scale: 1.01, boxShadow: "0 4px 20px -5px hsla(258, 90%, 62%, 0.15)" }}
+                      className="p-3 rounded-xl bg-muted/30 border border-border hover:border-primary/30 transition-all"
                     >
-                      {job.thumbnail ? (
-                        <img src={job.thumbnail} alt={job.company} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-border" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Building2 className="h-5 w-5 text-primary" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold truncate group-hover/job:text-primary transition-colors">{job.title}</h4>
-                        <p className="text-xs text-muted-foreground truncate">{job.company}</p>
-                        <div className="flex items-center gap-3 mt-1 flex-wrap">
-                          {job.location && (
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-2.5 w-2.5" /> {job.location}
-                            </span>
-                          )}
-                          {job.posted && (
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-2.5 w-2.5" /> {job.posted}
-                            </span>
-                          )}
-                          {job.salary && (
-                            <span className="text-[10px] text-primary font-semibold flex items-center gap-1">
-                              <IndianRupee className="h-2.5 w-2.5" /> {job.salary}
-                            </span>
-                          )}
-                        </div>
-                        {job.via && (
-                          <span className="text-[9px] text-muted-foreground/60 mt-1 block">{job.via}</span>
+                      <div className="flex items-start gap-3">
+                        {job.thumbnail ? (
+                          <img src={job.thumbnail} alt={job.company} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-border" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Building2 className="h-5 w-5 text-primary" />
+                          </div>
                         )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold truncate">{job.title}</h4>
+                          <p className="text-xs text-muted-foreground truncate">{job.company}</p>
+                          <div className="flex items-center gap-3 mt-1 flex-wrap">
+                            {job.location && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <MapPin className="h-2.5 w-2.5" /> {job.location}
+                              </span>
+                            )}
+                            {job.posted && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Clock className="h-2.5 w-2.5" /> {job.posted}
+                              </span>
+                            )}
+                            {job.salary && (
+                              <span className="text-[10px] text-primary font-semibold flex items-center gap-1">
+                                <IndianRupee className="h-2.5 w-2.5" /> {job.salary}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <ArrowUpRight className="h-4 w-4 text-muted-foreground/0 group-hover/job:text-primary shrink-0 transition-all mt-1" />
-                    </motion.a>
+                      {/* Apply buttons */}
+                      <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                        {job.apply_links && job.apply_links.length > 0 ? (
+                          job.apply_links.map((al, j) => (
+                            <motion.a
+                              key={j}
+                              href={al.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              whileHover={{ scale: 1.05, y: -1 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[11px] font-semibold hover:bg-primary hover:text-primary-foreground transition-all"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ArrowUpRight className="h-3 w-3" />
+                              Apply on {al.platform}
+                            </motion.a>
+                          ))
+                        ) : job.link ? (
+                          <motion.a
+                            href={job.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            whileHover={{ scale: 1.05, y: -1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[11px] font-semibold hover:bg-primary hover:text-primary-foreground transition-all"
+                          >
+                            <ArrowUpRight className="h-3 w-3" />
+                            Apply Now
+                          </motion.a>
+                        ) : null}
+                      </div>
+                    </motion.div>
                   ))}
                 </div>
               </motion.div>
