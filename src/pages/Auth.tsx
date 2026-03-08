@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, User, Sparkles, KeyRound, Shield, Zap, Star } from "lucide-react";
+import { Compass, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, User, Sparkles, KeyRound, Shield, Zap, Star, CheckCircle2, Timer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
-type AuthMode = "login" | "signup" | "magic-link" | "forgot";
+type AuthMode = "login" | "signup" | "magic-link" | "forgot" | "otp-verify";
 
 const floatingIcons = [
   { icon: "🎯", delay: 0, x: "10%", y: "15%" },
@@ -16,6 +16,8 @@ const floatingIcons = [
   { icon: "🧠", delay: 1.2, x: "50%", y: "8%" },
   { icon: "📊", delay: 0.5, x: "90%", y: "45%" },
 ];
+
+const OTP_DURATION = 300; // 5 minutes in seconds
 
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
@@ -28,8 +30,27 @@ export default function AuthPage() {
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
+  const [otpTimer, setOtpTimer] = useState(OTP_DURATION);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpSuccess, setOtpSuccess] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // OTP countdown timer
+  useEffect(() => {
+    if (mode !== "otp-verify" || otpTimer <= 0 || otpSuccess) return;
+    const interval = setInterval(() => setOtpTimer((t) => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [mode, otpTimer, otpSuccess]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const timerProgress = otpTimer / OTP_DURATION;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,17 +62,104 @@ export default function AuthPage() {
         toast({ title: "Welcome back!", description: "You've been signed in successfully." });
         navigate("/dashboard");
       } else if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        // Step 1: Send OTP to email for verification
+        const { error } = await supabase.auth.signInWithOtp({
           email,
-          password,
           options: {
-            emailRedirectTo: window.location.origin,
+            shouldCreateUser: true,
             data: { full_name: fullName },
           },
         });
         if (error) throw error;
-        toast({ title: "Account created!", description: "Check your email to verify your account." });
+        // Move to OTP verification screen
+        setOtpCode(["", "", "", "", "", ""]);
+        setOtpTimer(OTP_DURATION);
+        setOtpSuccess(false);
+        setMode("otp-verify");
+        toast({ title: "OTP Sent! 📧", description: `A 6-digit code has been sent to ${email}` });
       }
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) value = value.slice(-1);
+    if (!/^\d*$/.test(value)) return;
+    const newOtp = [...otpCode];
+    newOtp[index] = value;
+    setOtpCode(newOtp);
+    // Auto-focus next input
+    if (value && index < 5) {
+      const next = document.getElementById(`otp-${index + 1}`);
+      next?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otpCode[index] && index > 0) {
+      const prev = document.getElementById(`otp-${index - 1}`);
+      prev?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const newOtp = [...otpCode];
+    for (let i = 0; i < pasted.length; i++) {
+      newOtp[i] = pasted[i];
+    }
+    setOtpCode(newOtp);
+    const focusIdx = Math.min(pasted.length, 5);
+    document.getElementById(`otp-${focusIdx}`)?.focus();
+  };
+
+  const handleVerifyOtp = async () => {
+    const code = otpCode.join("");
+    if (code.length !== 6) {
+      toast({ title: "Invalid code", description: "Please enter the full 6-digit code.", variant: "destructive" });
+      return;
+    }
+    setOtpVerifying(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "email",
+      });
+      if (error) throw error;
+
+      // Set password after OTP verification
+      if (password) {
+        await supabase.auth.updateUser({ password });
+      }
+
+      setOtpSuccess(true);
+      toast({ title: "Email verified! ✅", description: "Your account has been created successfully." });
+      
+      // Brief delay to show success animation
+      setTimeout(() => navigate("/dashboard"), 1500);
+    } catch (e: any) {
+      toast({ title: "Verification failed", description: e.message, variant: "destructive" });
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true, data: { full_name: fullName } },
+      });
+      if (error) throw error;
+      setOtpTimer(OTP_DURATION);
+      setOtpCode(["", "", "", "", "", ""]);
+      toast({ title: "Code resent! 📧", description: "A new OTP has been sent to your email." });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -107,11 +215,6 @@ export default function AuthPage() {
     }
   };
 
-  const inputVariants = {
-    focused: { scale: 1.02, boxShadow: "0 0 20px hsla(258, 90%, 62%, 0.2)" },
-    unfocused: { scale: 1, boxShadow: "0 0 0px transparent" },
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4 py-8">
       {/* Animated background orbs */}
@@ -135,7 +238,6 @@ export default function AuthPage() {
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Floating emoji icons */}
         {floatingIcons.map((item, i) => (
           <motion.div
             key={i}
@@ -148,7 +250,6 @@ export default function AuthPage() {
           </motion.div>
         ))}
 
-        {/* Grid pattern */}
         <div className="absolute inset-0 opacity-[0.02]" style={{
           backgroundImage: "linear-gradient(hsl(258, 90%, 62%) 1px, transparent 1px), linear-gradient(90deg, hsl(258, 90%, 62%) 1px, transparent 1px)",
           backgroundSize: "60px 60px"
@@ -186,7 +287,7 @@ export default function AuthPage() {
               transition={{ duration: 0.3 }}
             >
               <h1 className="font-display text-3xl sm:text-4xl font-bold gradient-text mb-2">
-                {mode === "login" ? "Welcome Back" : mode === "signup" ? "Create Account" : mode === "forgot" ? "Reset Password" : "Magic Link"}
+                {mode === "login" ? "Welcome Back" : mode === "signup" ? "Create Account" : mode === "forgot" ? "Reset Password" : mode === "otp-verify" ? "Verify Email" : "Magic Link"}
               </h1>
               <p className="text-muted-foreground text-sm">
                 {mode === "login"
@@ -195,6 +296,8 @@ export default function AuthPage() {
                   ? "Start your AI-powered career journey"
                   : mode === "forgot"
                   ? "We'll send you a link to reset your password"
+                  : mode === "otp-verify"
+                  ? `Enter the 6-digit code sent to ${email}`
                   : "We'll email you a passwordless login link"}
               </p>
             </motion.div>
@@ -216,8 +319,166 @@ export default function AuthPage() {
           />
 
           <div className="relative z-10">
-            {/* Google & Magic Link - hide in forgot mode */}
-            {mode !== "forgot" && (
+            {/* ───── OTP VERIFICATION SCREEN ───── */}
+            {mode === "otp-verify" && (
+              <AnimatePresence mode="wait">
+                {otpSuccess ? (
+                  <motion.div
+                    key="otp-success"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-8"
+                  >
+                    <motion.div
+                      className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: [0, 1.2, 1] }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    >
+                      <CheckCircle2 className="h-10 w-10 text-green-500" />
+                    </motion.div>
+                    <motion.h3
+                      className="font-display font-bold text-xl mb-2"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      Email Verified! 🎉
+                    </motion.h3>
+                    <motion.p
+                      className="text-sm text-muted-foreground"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      Redirecting to your dashboard...
+                    </motion.p>
+                    <motion.div
+                      className="mt-4 h-1 bg-primary/20 rounded-full overflow-hidden mx-auto w-40"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      <motion.div
+                        className="h-full bg-primary rounded-full"
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        transition={{ duration: 1.5, ease: "linear" }}
+                      />
+                    </motion.div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="otp-input"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6"
+                  >
+                    {/* Animated countdown timer */}
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="relative w-24 h-24">
+                        {/* Background circle */}
+                        <svg className="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="42" fill="none" strokeWidth="6" className="stroke-muted/30" />
+                          <motion.circle
+                            cx="50" cy="50" r="42"
+                            fill="none"
+                            strokeWidth="6"
+                            className="stroke-primary"
+                            strokeLinecap="round"
+                            strokeDasharray={264}
+                            strokeDashoffset={264 * (1 - timerProgress)}
+                            transition={{ duration: 1 }}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <motion.div
+                            className="flex items-center gap-1"
+                            animate={otpTimer <= 30 ? { scale: [1, 1.05, 1] } : {}}
+                            transition={{ duration: 1, repeat: Infinity }}
+                          >
+                            <Timer className={`h-3.5 w-3.5 ${otpTimer <= 30 ? "text-destructive" : "text-primary"}`} />
+                            <span className={`text-sm font-mono font-bold ${otpTimer <= 30 ? "text-destructive" : "text-foreground"}`}>
+                              {formatTime(otpTimer)}
+                            </span>
+                          </motion.div>
+                        </div>
+                      </div>
+                      {otpTimer <= 0 && (
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-xs text-destructive font-medium"
+                        >
+                          Code expired
+                        </motion.p>
+                      )}
+                    </div>
+
+                    {/* OTP Input boxes */}
+                    <div className="flex justify-center gap-2 sm:gap-3" onPaste={handleOtpPaste}>
+                      {otpCode.map((digit, index) => (
+                        <motion.input
+                          key={index}
+                          id={`otp-${index}`}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          className="w-11 h-14 sm:w-13 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-xl border-2 border-border bg-muted/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition-all"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.08 }}
+                          whileFocus={{ scale: 1.08, borderColor: "hsl(258, 90%, 62%)" }}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Verify button */}
+                    <motion.button
+                      onClick={handleVerifyOtp}
+                      disabled={otpVerifying || otpCode.join("").length !== 6 || otpTimer <= 0}
+                      className="w-full gradient-btn py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 relative overflow-hidden"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        initial={{ x: "-100%" }}
+                        whileHover={{ x: "100%" }}
+                        transition={{ duration: 0.5 }}
+                      />
+                      <span className="relative z-10 flex items-center gap-2">
+                        {otpVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                        Verify & Create Account
+                      </span>
+                    </motion.button>
+
+                    {/* Resend & back */}
+                    <div className="flex flex-col items-center gap-2 text-sm">
+                      <button
+                        onClick={handleResendOtp}
+                        disabled={loading || otpTimer > 0}
+                        className="text-primary font-medium hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {loading ? "Sending..." : "Resend Code"}
+                      </button>
+                      <button
+                        onClick={() => setMode("signup")}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        ← Back to sign up
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
+
+            {/* ───── GOOGLE & MAGIC LINK BUTTONS ───── */}
+            {mode !== "forgot" && mode !== "otp-verify" && (
               <>
                 <motion.button
                   onClick={handleGoogle}
@@ -265,7 +526,7 @@ export default function AuthPage() {
               </>
             )}
 
-            {/* Magic link mode */}
+            {/* ───── MAGIC LINK MODE ───── */}
             {mode === "magic-link" && (
               <>
                 <div className="flex items-center gap-3 my-5">
@@ -303,7 +564,7 @@ export default function AuthPage() {
               </>
             )}
 
-            {/* Forgot password mode */}
+            {/* ───── FORGOT PASSWORD MODE ───── */}
             {mode === "forgot" && (
               <>
                 <AnimatePresence mode="wait">
@@ -335,8 +596,8 @@ export default function AuthPage() {
               </>
             )}
 
-            {/* Login / Signup form */}
-            {mode !== "magic-link" && mode !== "forgot" && (
+            {/* ───── LOGIN / SIGNUP FORM ───── */}
+            {(mode === "login" || mode === "signup") && (
               <>
                 <div className="flex items-center gap-3 mb-5">
                   <div className="flex-1 h-px bg-border" />
@@ -392,7 +653,7 @@ export default function AuthPage() {
                     </div>
                   )}
 
-                  <SubmitButton loading={loading} icon={<ArrowRight className="h-4 w-4" />} text={mode === "login" ? "Sign In" : "Create Account"} />
+                  <SubmitButton loading={loading} icon={<ArrowRight className="h-4 w-4" />} text={mode === "login" ? "Sign In" : "Send Verification Code"} />
                 </form>
 
                 <p className="text-center text-sm text-muted-foreground mt-5">
