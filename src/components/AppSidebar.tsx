@@ -27,6 +27,7 @@ const navItems = [
   { title: "LinkedIn Analyzer", url: "/linkedin-analyzer", icon: Linkedin },
   { title: "Career Roadmap", url: "/career-roadmap", icon: Map },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Profile", url: "/profile", icon: Settings },
   { title: "History", url: "/history", icon: Clock },
 ];
 

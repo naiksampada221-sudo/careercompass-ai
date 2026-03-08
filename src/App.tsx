@@ -65,6 +65,7 @@ const App = () => (
                     <Route path="/linkedin-analyzer" element={<LinkedInAnalyzer />} />
                     <Route path="/career-roadmap" element={<CareerRoadmap />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="/history" element={<History />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
