@@ -279,7 +279,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="flex items-center justify-between mt-4 pt-4 border-t border-border/50"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-4 border-t border-border/50 gap-3"
               >
                 <div className="flex items-center gap-4">
                   <div>
@@ -409,7 +409,7 @@ export default function DashboardPage() {
                     ];
                     const COLORS = ["hsl(258, 90%, 65%)", "hsl(220, 70%, 55%)", "hsl(170, 70%, 45%)"];
                     return (
-                      <div className="w-full flex items-center gap-6">
+                      <div className="w-full flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                         <div className="flex-1" style={{ height: 200 }}>
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -480,7 +480,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground mb-6">Based on your activity and preparation level</p>
                 
                 {/* Gauge */}
-                <div className="relative mx-auto" style={{ width: 220, height: 120 }}>
+                <div className="relative mx-auto" style={{ width: "min(220px, 100%)", height: 120 }}>
                   <svg width={220} height={120} viewBox="0 0 220 120">
                     {/* Background arc */}
                     <path

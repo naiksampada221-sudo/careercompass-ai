@@ -119,25 +119,25 @@ export default function HomePage() {
           }} />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 lg:py-36">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-36">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="text-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-400/20 backdrop-blur-md text-primary-foreground/90 text-sm font-medium mb-8 shadow-[0_0_30px_-4px_hsla(258,90%,62%,0.3)]"
+              className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-400/20 backdrop-blur-md text-primary-foreground/90 text-xs sm:text-sm font-medium mb-6 sm:mb-8 shadow-[0_0_30px_-4px_hsla(258,90%,62%,0.3)]"
             >
-              <span className="relative flex h-2.5 w-2.5">
+              <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_8px_2px_hsla(145,80%,55%,0.5)]" />
+                <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-400 shadow-[0_0_8px_2px_hsla(145,80%,55%,0.5)]" />
               </span>
-              <span className="tracking-wide">Powered by Google Gemini AI</span>
-              <Sparkles className="h-3.5 w-3.5 text-purple-300 animate-pulse" />
+              <span className="tracking-wide">Powered by Gemini AI</span>
+              <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-purple-300 animate-pulse" />
             </motion.div>
 
             <TextReveal>
               <motion.h1
-                className="font-display text-4xl sm:text-5xl lg:text-7xl font-bold text-primary-foreground mb-6 leading-[1.05] tracking-tight"
+                className="font-display text-3xl sm:text-5xl lg:text-7xl font-bold text-primary-foreground mb-4 sm:mb-6 leading-[1.1] tracking-tight"
               >
                 Your AI-Powered
                 <br />
@@ -153,7 +153,7 @@ export default function HomePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="text-primary-foreground/60 text-lg sm:text-xl max-w-xl mx-auto mb-12 leading-relaxed"
+              className="text-primary-foreground/60 text-base sm:text-lg lg:text-xl max-w-xl mx-auto mb-8 sm:mb-12 leading-relaxed px-2"
             >
               Analyze resumes, predict career paths, and ace interviews — all powered by cutting-edge AI.
             </motion.p>
@@ -162,12 +162,12 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0"
             >
               <MagneticButton strength={0.2}>
                 <Link
                   to="/resume-analyzer"
-                  className="group inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 text-primary-foreground font-semibold shadow-[0_8px_30px_-6px_hsla(258,90%,62%,0.5)] hover:shadow-[0_16px_50px_-6px_hsla(258,90%,62%,0.6)] hover:-translate-y-1 transition-all duration-300 shimmer"
+                  className="group inline-flex items-center justify-center gap-2 sm:gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 text-primary-foreground font-semibold shadow-[0_8px_30px_-6px_hsla(258,90%,62%,0.5)] hover:shadow-[0_16px_50px_-6px_hsla(258,90%,62%,0.6)] hover:-translate-y-1 transition-all duration-300 shimmer text-sm sm:text-base"
                 >
                   <Sparkles className="h-4 w-4" /> Analyze My Resume <ArrowRight className="h-4 w-4 group-hover:translate-x-1.5 transition-transform" />
                 </Link>
@@ -175,7 +175,7 @@ export default function HomePage() {
               <MagneticButton strength={0.2}>
                 <a
                   href="#features"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl border border-primary-foreground/15 text-primary-foreground/80 font-semibold backdrop-blur-sm hover:bg-primary-foreground/5 hover:border-primary-foreground/25 transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl border border-primary-foreground/15 text-primary-foreground/80 font-semibold backdrop-blur-sm hover:bg-primary-foreground/5 hover:border-primary-foreground/25 transition-all duration-300 text-sm sm:text-base"
                 >
                   Explore Features
                 </a>
@@ -187,7 +187,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
-              className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto"
+              className="mt-10 sm:mt-16 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-2xl mx-auto px-2 sm:px-0"
             >
               {stats.map((stat, i) => (
                 <motion.div
@@ -196,9 +196,9 @@ export default function HomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 + i * 0.1 }}
                   whileHover={{ scale: 1.05, borderColor: "hsla(258, 90%, 62%, 0.3)" }}
-                  className="text-center px-4 py-3 rounded-xl bg-primary-foreground/5 backdrop-blur-sm border border-primary-foreground/10 transition-colors"
+                  className="text-center px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-primary-foreground/5 backdrop-blur-sm border border-primary-foreground/10 transition-colors"
                 >
-                  <div className="font-display font-bold text-xl text-primary-foreground">
+                  <div className="font-display font-bold text-lg sm:text-xl text-primary-foreground">
                     <AnimatedCounter value={stat.value} />
                   </div>
                   <div className="text-primary-foreground/50 text-xs mt-0.5">{stat.label}</div>
@@ -296,7 +296,7 @@ export default function HomePage() {
             <motion.div
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.3 }}
-              className="relative rounded-3xl overflow-hidden gradient-bg p-12 sm:p-16 text-center border-glow-card"
+              className="relative rounded-3xl overflow-hidden gradient-bg p-8 sm:p-12 lg:p-16 text-center border-glow-card"
             >
               {/* Animated floating orbs */}
               {[...Array(8)].map((_, i) => (
@@ -330,7 +330,7 @@ export default function HomePage() {
                   <Sparkles className="h-7 w-7 text-primary-foreground" />
                 </motion.div>
                 <TextReveal>
-                  <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
+                  <h2 className="font-display text-2xl sm:text-3xl lg:text-5xl font-bold text-primary-foreground mb-4">
                     Ready to Transform <br />Your Career?
                   </h2>
                 </TextReveal>

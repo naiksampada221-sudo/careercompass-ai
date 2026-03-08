@@ -7,8 +7,15 @@ export default function CursorGlow() {
   const smoothX = useSpring(mouseX, { damping: 25, stiffness: 200 });
   const smoothY = useSpring(mouseY, { damping: 25, stiffness: 200 });
   const [visible, setVisible] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   useEffect(() => {
+    // Disable on touch devices
+    if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
+      setIsTouchDevice(true);
+      return;
+    }
+
     const move = (e: MouseEvent) => {
       mouseX.set(e.clientX);
       mouseY.set(e.clientY);
@@ -22,6 +29,8 @@ export default function CursorGlow() {
       document.removeEventListener("mouseleave", leave);
     };
   }, [visible]);
+
+  if (isTouchDevice) return null;
 
   return (
     <motion.div

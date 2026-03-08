@@ -32,7 +32,7 @@ const App = () => (
               <ScrollProgress />
               <AppSidebar />
               <div className="flex-1 flex flex-col min-w-0">
-                <header className="sticky top-0 z-40 h-14 flex items-center bg-background/60 backdrop-blur-xl px-4 header-glow relative">
+                <header className="sticky top-0 z-40 h-14 flex items-center bg-background/60 backdrop-blur-xl px-3 sm:px-4 header-glow relative">
                   {/* Animated gradient bottom border */}
                   <motion.div
                     className="absolute bottom-0 left-0 right-0 h-[1px]"
@@ -43,16 +43,16 @@ const App = () => (
                     animate={{ backgroundPosition: ["0% 0%", "200% 0%"] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                   />
-                  <SidebarTrigger className="hover:scale-110 transition-transform" />
-                  <div className="ml-3 flex items-center gap-2 flex-1">
+                  <SidebarTrigger className="hover:scale-110 transition-transform shrink-0" />
+                  <div className="ml-2 sm:ml-3 flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
                     <MagneticButton strength={0.4}>
                       <motion.div
-                        className="w-8 h-8 rounded-xl gradient-btn flex items-center justify-center relative overflow-hidden"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl gradient-btn flex items-center justify-center relative overflow-hidden shrink-0"
                         whileHover={{ scale: 1.15, rotate: 5 }}
                         transition={{ type: "spring", stiffness: 400 }}
                       >
                         <motion.span
-                          className="text-xs font-bold relative z-10"
+                          className="text-[10px] sm:text-xs font-bold relative z-10"
                           animate={{ rotate: [0, 360] }}
                           transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                         >
@@ -65,9 +65,9 @@ const App = () => (
                         />
                       </motion.div>
                     </MagneticButton>
-                    <span className="font-display font-bold text-sm gradient-text tracking-wide">CareerCompass AI</span>
+                    <span className="font-display font-bold text-xs sm:text-sm gradient-text tracking-wide truncate">CareerCompass AI</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     <GreetingBadge />
                     <NotificationBell />
                     <HeaderNav />
