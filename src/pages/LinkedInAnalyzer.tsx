@@ -66,7 +66,7 @@ export default function LinkedInAnalyzerPage() {
       // supabase.functions.invoke puts parsed body in `data` even on error status codes
       if (data?.showManualInput) {
         setShowManualInput(true);
-        toast.info("LinkedIn limits public access. Please paste your profile content below and try again.", { duration: 6000 });
+        toast.info(data?.error || "Not enough verified real-time data found. Please paste your profile content for accurate analysis.", { duration: 7000 });
         return;
       }
       if (error) {
