@@ -62,6 +62,17 @@ Use real, current resources. Be specific. Return ONLY valid JSON, no markdown.`;
 
 Return ONLY valid JSON array, no markdown. If the query is empty or very short, suggest trending/popular skills.`;
       prompt = `Suggest skills matching: "${query}"`;
+    } else if (action === "suggest_careers") {
+      const query = career || "";
+      systemPrompt = `You are a career advisor. Given a partial search query, suggest 6-8 relevant career paths that match. Return a JSON array of objects with:
+- id (string, kebab-case)
+- title (string): career title
+- icon (string): one emoji representing this career
+- category (string): one of "Tech", "Business", "Creative", "Science", "Healthcare", "Engineering"
+- description (string): one sentence description
+
+Return ONLY valid JSON array, no markdown. Suggest diverse, real career paths related to the query.`;
+      prompt = `Suggest career paths matching: "${query}"`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
