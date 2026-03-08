@@ -63,24 +63,16 @@ export default function AuthPage() {
         toast({ title: "Welcome back!", description: "You've been signed in successfully." });
         navigate("/dashboard");
       } else if (mode === "signup") {
-        // Step 1: Send OTP to email for verification
-        const { error } = await supabase.auth.signInWithOtp({
+        const { error } = await supabase.auth.signUp({
           email,
+          password,
           options: {
-            shouldCreateUser: true,
             data: { full_name: fullName },
           },
         });
         if (error) throw error;
-        // Move to OTP verification screen
-        setOtpCode(["", "", "", "", "", ""]);
-        setOtpTimer(OTP_DURATION);
-        setOtpSuccess(false);
-        setShowOtpSplash(true);
-        setMode("otp-verify");
-        // Auto-hide splash after 3 seconds
-        setTimeout(() => setShowOtpSplash(false), 3000);
-        toast({ title: "OTP Sent! 📧", description: `A 6-digit code has been sent to ${email}` });
+        toast({ title: "Account created! 🎉", description: "Welcome aboard! Redirecting to dashboard..." });
+        navigate("/dashboard");
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
