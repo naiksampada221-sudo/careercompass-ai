@@ -296,7 +296,7 @@ export default function HomePage() {
             <motion.div
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.3 }}
-              className="relative rounded-3xl overflow-hidden gradient-bg p-12 sm:p-16 text-center border-glow-card"
+              className="relative rounded-3xl overflow-hidden gradient-bg p-8 sm:p-12 lg:p-16 text-center border-glow-card"
             >
               {/* Animated floating orbs */}
               {[...Array(8)].map((_, i) => (
