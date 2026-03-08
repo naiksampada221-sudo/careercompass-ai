@@ -30,6 +30,7 @@ export default function ResumeAnalyzerPage() {
   const [result, setResult] = useState<ResumeResult | null>(null);
   const [useText, setUseText] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleAnalyze = async (text: string) => {
     setAnalyzing(true);
