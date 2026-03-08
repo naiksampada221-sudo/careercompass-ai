@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.skill-explorer]
 verify_jwt = false
+
+[functions.career-roadmap]
+verify_jwt = false
