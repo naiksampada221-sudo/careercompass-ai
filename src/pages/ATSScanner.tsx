@@ -20,40 +20,64 @@ interface ATSResult {
 export default function ATSScannerPage() {
   const [jobDesc, setJobDesc] = useState("");
   const [resumeText, setResumeText] = useState("");
+  const [fileBase64, setFileBase64] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ATSResult | null>(null);
   const [step, setStep] = useState<"upload" | "jobdesc">("upload");
+  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
   const handleFile = (f: File | null) => {
     if (!f) return;
     setFile(f);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setResumeText(e.target?.result as string);
-      setStep("jobdesc");
-    };
-    reader.readAsText(f);
+    const isBinary = /\.(pdf|doc|docx)$/i.test(f.name);
+
+    if (isBinary) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = (e.target?.result as string).split(",")[1];
+        setFileBase64(base64);
+        setFileName(f.name);
+        setResumeText("__file_uploaded__");
+        setStep("jobdesc");
+      };
+      reader.readAsDataURL(f);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setResumeText(e.target?.result as string);
+        setStep("jobdesc");
+      };
+      reader.readAsText(f);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
     handleFile(e.dataTransfer.files?.[0] || null);
   };
 
   const handleScan = async () => {
-    if (!jobDesc.trim() || !resumeText.trim()) {
+    if (!jobDesc.trim() || (!resumeText.trim() && !fileBase64)) {
       toast({ title: "Missing input", description: "Please provide both resume and job description.", variant: "destructive" });
       return;
     }
     setLoading(true);
     setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("ats-scanner", {
-        body: { resumeText: resumeText.trim(), jobDescription: jobDesc.trim() },
-      });
+      const body: Record<string, string> = { jobDescription: jobDesc.trim() };
+      if (fileBase64 && fileName) {
+        body.fileBase64 = fileBase64;
+        body.fileName = fileName;
+      } else {
+        body.resumeText = resumeText.trim();
+      }
+      const { data, error } = await supabase.functions.invoke("ats-scanner", { body });
       if (error) throw error;
       setResult(data.result);
       if (user) {
@@ -77,6 +101,8 @@ export default function ATSScannerPage() {
   const handleReset = () => {
     setFile(null);
     setResumeText("");
+    setFileBase64(null);
+    setFileName(null);
     setJobDesc("");
     setResult(null);
     setStep("upload");
@@ -116,20 +142,25 @@ export default function ATSScannerPage() {
       {step === "upload" && !result && !loading && (
         <AnimatedSection className="max-w-2xl mx-auto space-y-5">
           <div
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
             onDrop={handleDrop}
-            className="relative glass-card rounded-3xl p-16 text-center cursor-pointer card-hover border-2 border-dashed border-border hover:border-primary/40 transition-all group"
+            onClick={() => { const input = document.getElementById("ats-file-input") as HTMLInputElement; input?.click(); }}
+            className={`relative glass-card rounded-3xl p-16 text-center cursor-pointer card-hover border-2 border-dashed transition-all group ${
+              isDragging ? "border-primary bg-primary/5 scale-[1.02]" : "border-border hover:border-primary/40"
+            }`}
           >
             <input
+              id="ats-file-input"
               type="file"
               accept=".pdf,.txt,.doc,.docx"
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              onChange={(e) => handleFile(e.target.files?.[0] || null)}
+              className="hidden"
+              onChange={(e) => { handleFile(e.target.files?.[0] || null); e.target.value = ""; }}
             />
-            <div className="w-16 h-16 rounded-2xl gradient-btn flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
+            <div className={`w-16 h-16 rounded-2xl gradient-btn flex items-center justify-center mx-auto mb-5 transition-transform ${isDragging ? "scale-125" : "group-hover:scale-110"}`}>
               <Upload className="h-8 w-8" />
             </div>
-            <h3 className="font-display font-semibold text-xl mb-2">Drag & Drop your Resume</h3>
+            <h3 className="font-display font-semibold text-xl mb-2">{isDragging ? "Drop your file here!" : "Drag & Drop your Resume"}</h3>
             <p className="text-muted-foreground text-sm mb-4">or click to browse files</p>
             <span className="inline-block px-3 py-1 rounded-lg bg-accent text-accent-foreground text-xs font-medium">TXT, PDF, DOC supported</span>
           </div>

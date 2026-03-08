@@ -9,11 +9,39 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { resumeText, jobDescription } = await req.json();
-    if (!resumeText || !jobDescription) throw new Error("Both resume text and job description are required");
+    const { resumeText, jobDescription, fileBase64, fileName } = await req.json();
+    if ((!resumeText && !fileBase64) || !jobDescription) throw new Error("Both resume and job description are required");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const systemPrompt = `You are an ATS (Applicant Tracking System) expert. Compare the resume against the job description and return a JSON object with:
+- score (number 0-100): ATS compatibility score
+- matchedKeywords (string[]): keywords found in both resume and job description
+- missingKeywords (string[]): important keywords from the job description missing in the resume
+- suggestions (string[]): 4-6 specific, actionable suggestions to improve ATS compatibility
+
+Be precise and compare actual keywords. Return ONLY valid JSON, no markdown.`;
+
+    const userContent: any[] = [];
+
+    if (fileBase64 && fileName) {
+      const ext = (fileName || "").split(".").pop()?.toLowerCase();
+      const mimeMap: Record<string, string> = {
+        pdf: "application/pdf",
+        doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        txt: "text/plain",
+      };
+      const mimeType = mimeMap[ext || ""] || "application/octet-stream";
+      userContent.push({
+        type: "file",
+        file: { filename: fileName, file_data: `data:${mimeType};base64,${fileBase64}` },
+      });
+      userContent.push({ type: "text", text: `Compare this resume against the following job description:\n\n${jobDescription}` });
+    } else {
+      userContent.push({ type: "text", text: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}` });
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -22,19 +50,10 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
-          {
-            role: "system",
-            content: `You are an ATS (Applicant Tracking System) expert. Compare the resume against the job description and return a JSON object with:
-- score (number 0-100): ATS compatibility score
-- matchedKeywords (string[]): keywords found in both resume and job description
-- missingKeywords (string[]): important keywords from the job description missing in the resume
-- suggestions (string[]): 4-6 specific, actionable suggestions to improve ATS compatibility
-
-Be precise and compare actual keywords. Return ONLY valid JSON, no markdown.`
-          },
-          { role: "user", content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}` }
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
         ],
       }),
     });
