@@ -169,125 +169,197 @@ export default function CareerRoadmapPage() {
   const generatePDF = (rm: CareerRoadmap) => {
     const doc = new jsPDF();
     const pageW = doc.internal.pageSize.getWidth();
-    let y = 20;
+    const pageH = doc.internal.pageSize.getHeight();
+    let y = 0;
 
     const checkPage = (needed: number) => {
-      if (y + needed > 275) { doc.addPage(); y = 20; }
+      if (y + needed > pageH - 25) { doc.addPage(); drawPageBorder(); y = 25; }
     };
 
-    // Title
-    doc.setFontSize(22);
+    const drawPageBorder = () => {
+      doc.setDrawColor(120, 80, 220);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(8, 8, pageW - 16, pageH - 16, 3, 3);
+    };
+
+    const drawSectionHeader = (title: string, emoji: string) => {
+      checkPage(18);
+      doc.setFillColor(120, 80, 220);
+      doc.roundedRect(20, y - 2, pageW - 40, 10, 2, 2, "F");
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${emoji}  ${title}`, 26, y + 5);
+      doc.setTextColor(40, 40, 40);
+      y += 16;
+    };
+
+    // ── Cover Page ──
+    drawPageBorder();
+
+    // Accent bar at top
+    doc.setFillColor(120, 80, 220);
+    doc.rect(8, 8, pageW - 16, 50, "F");
+
+    doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
-    doc.text(`${rm.career} — Career Roadmap`, pageW / 2, y, { align: "center" });
-    y += 10;
+    doc.setTextColor(255, 255, 255);
+    doc.text(rm.career, pageW / 2, 32, { align: "center" });
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "normal");
+    doc.text("Career Roadmap & Skill Guide", pageW / 2, 44, { align: "center" });
+
+    doc.setTextColor(40, 40, 40);
+    y = 75;
+
+    // Overview box
+    doc.setFillColor(245, 243, 255);
+    const overviewText = doc.splitTextToSize(rm.overview, pageW - 56);
+    const boxH = overviewText.length * 5 + 12;
+    doc.roundedRect(20, y - 4, pageW - 40, boxH, 3, 3, "F");
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Estimated: ${rm.totalMonths} months to become job-ready`, pageW / 2, y, { align: "center" });
-    y += 8;
-    doc.setDrawColor(100);
-    doc.line(20, y, pageW - 20, y);
-    y += 8;
+    doc.setTextColor(60, 60, 60);
+    doc.text(overviewText, 28, y + 4);
+    y += boxH + 10;
 
-    // Overview
-    doc.setFontSize(10);
-    const overviewLines = doc.splitTextToSize(rm.overview, pageW - 40);
-    doc.text(overviewLines, 20, y);
-    y += overviewLines.length * 5 + 6;
+    // Quick stats
+    doc.setFillColor(240, 240, 255);
+    doc.roundedRect(20, y, (pageW - 48) / 3, 18, 2, 2, "F");
+    doc.roundedRect(24 + (pageW - 48) / 3, y, (pageW - 48) / 3, 18, 2, 2, "F");
+    doc.roundedRect(28 + 2 * (pageW - 48) / 3, y, (pageW - 48) / 3, 18, 2, 2, "F");
 
-    // Required Skills
-    checkPage(20);
-    doc.setFontSize(14);
+    doc.setFontSize(8);
+    doc.setTextColor(120, 80, 220);
     doc.setFont("helvetica", "bold");
-    doc.text("Required Skills", 20, y);
-    y += 7;
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    rm.requiredSkills.forEach((sk) => {
-      checkPage(10);
-      doc.text(`• ${sk.name} [${sk.level}] — ${sk.description}`, 24, y, { maxWidth: pageW - 48 });
-      const lines = doc.splitTextToSize(`• ${sk.name} [${sk.level}] — ${sk.description}`, pageW - 48);
-      y += lines.length * 4.5 + 2;
+    doc.text("DURATION", 20 + (pageW - 48) / 6, y + 6, { align: "center" });
+    doc.text("SKILLS", 24 + (pageW - 48) / 2, y + 6, { align: "center" });
+    doc.text("STAGES", 28 + 5 * (pageW - 48) / 6, y + 6, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setTextColor(40, 40, 40);
+    doc.text(`${rm.totalMonths} months`, 20 + (pageW - 48) / 6, y + 14, { align: "center" });
+    doc.text(`${rm.requiredSkills.length} skills`, 24 + (pageW - 48) / 2, y + 14, { align: "center" });
+    doc.text(`${rm.stages.length} stages`, 28 + 5 * (pageW - 48) / 6, y + 14, { align: "center" });
+    y += 30;
+
+    // ── Required Skills ──
+    drawSectionHeader("Required Skills", "⚡");
+
+    rm.requiredSkills.forEach((sk, i) => {
+      checkPage(16);
+      const isEven = i % 2 === 0;
+      if (isEven) {
+        doc.setFillColor(250, 248, 255);
+        doc.roundedRect(22, y - 3, pageW - 44, 12, 1.5, 1.5, "F");
+      }
+      // Skill name
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(50, 30, 120);
+      doc.text(sk.name, 28, y + 3);
+      // Level badge
+      const levelColor = sk.level === "Essential" ? [220, 50, 50] : sk.level === "Important" ? [200, 150, 20] : [50, 160, 80];
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(levelColor[0], levelColor[1], levelColor[2]);
+      doc.text(`[${sk.level}]`, 85, y + 3);
+      // Description
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 100, 100);
+      doc.text(sk.description, 110, y + 3, { maxWidth: pageW - 140 });
+      y += 12;
     });
-    y += 4;
+    y += 6;
 
-    // Stages
+    // ── Learning Stages with Topics ──
     rm.stages.forEach((stage, si) => {
-      checkPage(25);
+      checkPage(22);
+
+      // Stage header with number badge
+      doc.setFillColor(120, 80, 220);
+      doc.circle(28, y + 3, 5, "F");
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${si + 1}`, 28, y + 5, { align: "center" });
+
       doc.setFontSize(13);
       doc.setFont("helvetica", "bold");
-      doc.text(`Stage ${si + 1}: ${stage.title} (${stage.duration})`, 20, y);
-      y += 7;
+      doc.setTextColor(50, 30, 120);
+      doc.text(stage.title, 38, y + 5);
 
-      stage.topics.forEach((topic) => {
-        checkPage(15);
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text(`▸ ${topic.name}`, 24, y);
-        y += 5;
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        const descLines = doc.splitTextToSize(topic.description, pageW - 52);
-        doc.text(descLines, 28, y);
-        y += descLines.length * 4.5 + 1;
-
-        topic.resources.forEach((r) => {
-          checkPage(6);
-          doc.text(`  📖 ${r}`, 28, y);
-          y += 4.5;
-        });
-
-        // YouTube links
-        const ytBase = `https://youtube.com/results?search_query=`;
-        checkPage(6);
-        doc.setTextColor(200, 0, 0);
-        doc.text(`  🎥 YouTube: English | Hindi | Spanish`, 28, y);
-        doc.setTextColor(0);
-        y += 6;
-      });
-
-      if (stage.projects.length > 0) {
-        checkPage(10);
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text("Projects:", 24, y);
-        y += 5;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        stage.projects.forEach((p) => {
-          checkPage(6);
-          doc.text(`  🛠 ${p}`, 28, y);
-          y += 4.5;
-        });
-      }
-      y += 6;
-    });
-
-    // Certifications
-    if (rm.certifications?.length > 0) {
-      checkPage(20);
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Recommended Certifications", 20, y);
-      y += 7;
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      rm.certifications.forEach((c) => {
-        checkPage(6);
-        doc.text(`🏅 ${c.name} — ${c.provider} [${c.difficulty}]`, 24, y);
-        y += 5;
-      });
-    }
+      doc.setTextColor(140, 140, 140);
+      doc.text(`(${stage.duration})`, 38 + doc.getTextWidth(stage.title) + 4, y + 5);
+      y += 14;
 
-    // Footer
+      // Topics
+      stage.topics.forEach((topic) => {
+        checkPage(18);
+        // Topic card
+        doc.setFillColor(248, 246, 255);
+        const topicDesc = doc.splitTextToSize(topic.description, pageW - 70);
+        const cardH = topicDesc.length * 4.5 + 10;
+        doc.roundedRect(30, y - 2, pageW - 54, cardH, 2, 2, "F");
+
+        // Left accent bar
+        doc.setFillColor(160, 120, 240);
+        doc.rect(30, y - 2, 2, cardH, "F");
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(60, 40, 140);
+        doc.text(`▪ ${topic.name}`, 36, y + 4);
+
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80, 80, 80);
+        doc.text(topicDesc, 36, y + 10);
+        y += cardH + 4;
+      });
+
+      // Connector line between stages
+      if (si < rm.stages.length - 1) {
+        checkPage(8);
+        doc.setDrawColor(200, 180, 255);
+        doc.setLineWidth(0.3);
+        doc.setLineDashPattern([2, 2], 0);
+        doc.line(28, y, 28, y + 6);
+        doc.setLineDashPattern([], 0);
+        y += 8;
+      }
+    });
+
+    // ── Footer Page ──
     doc.addPage();
-    y = 20;
-    doc.setFontSize(16);
+    drawPageBorder();
+
+    doc.setFillColor(120, 80, 220);
+    doc.roundedRect(30, 60, pageW - 60, 50, 6, 6, "F");
+    doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("You're ready to start your journey!", pageW / 2, y, { align: "center" });
-    y += 10;
-    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text("You're ready to begin!", pageW / 2, 82, { align: "center" });
+    doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    doc.text("Generated by CareerCompass AI", pageW / 2, y, { align: "center" });
+    doc.text("Master these skills & topics step by step.", pageW / 2, 96, { align: "center" });
+
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text("Generated by CareerCompass AI", pageW / 2, 130, { align: "center" });
+    doc.text(new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }), pageW / 2, 138, { align: "center" });
+
+    // Page numbers
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(180, 180, 180);
+      doc.text(`Page ${i} of ${totalPages}`, pageW / 2, pageH - 12, { align: "center" });
+    }
 
     doc.save(`${rm.career.replace(/\s+/g, "_")}_Roadmap.pdf`);
     toast({ title: "PDF Downloaded!", description: `Your ${rm.career} roadmap has been saved.` });
