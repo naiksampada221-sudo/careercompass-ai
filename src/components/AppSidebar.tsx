@@ -116,14 +116,6 @@ export function AppSidebar() {
             <LogOut className="h-4 w-4 shrink-0" />
             {!collapsed && <span>Sign Out</span>}
           </button>
-        ) : (
-          <button
-            onClick={() => { navigate("/auth"); handleNavClick(); }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium gradient-btn w-full"
-          >
-            <LogIn className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>Sign In</span>}
-          </button>
         )}
       </SidebarFooter>
     </Sidebar>
