@@ -56,6 +56,16 @@ export default function ATSScannerPage() {
       });
       if (error) throw error;
       setResult(data.result);
+      if (user) {
+        saveActivity({
+          userId: user.id,
+          activityType: "ats_scan",
+          title: "ATS Scan",
+          summary: `Score: ${data.result.score}/100 • ${data.result.matchedKeywords?.length || 0} matched, ${data.result.missingKeywords?.length || 0} missing`,
+          score: data.result.score,
+          resultData: data.result,
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast({ title: "Error", description: e.message || "Failed to scan. Please try again.", variant: "destructive" });
