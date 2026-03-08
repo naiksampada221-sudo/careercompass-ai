@@ -54,6 +54,7 @@ const App = () => (
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
                     <Route path="/ats-scanner" element={<ATSScanner />} />
                     <Route path="/career-prediction" element={<CareerPrediction />} />
