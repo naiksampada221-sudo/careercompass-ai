@@ -43,6 +43,15 @@ export default function SkillExplorerPage() {
 
       if (error) throw error;
       setPlan(data.plan);
+      if (user) {
+        saveActivity({
+          userId: user.id,
+          activityType: "skill_explorer",
+          title: `Skill Explorer: ${skill.trim()}`,
+          summary: `${data.plan.totalWeeks} week learning plan with ${data.plan.steps?.length || 0} steps`,
+          resultData: data.plan,
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast({ title: "Error", description: e.message || "Failed to generate plan. Please try again.", variant: "destructive" });
