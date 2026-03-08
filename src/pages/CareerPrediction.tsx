@@ -175,6 +175,8 @@ export default function CareerPredictionPage() {
     setPredictions([]);
     setSkills([]);
     setExpandedIdx(null);
+    setGrounded(false);
+    setSources([]);
   };
 
   return (
