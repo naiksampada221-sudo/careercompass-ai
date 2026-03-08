@@ -467,12 +467,38 @@ export default function CareerRoadmapPage() {
               </AnimatedSection>
             )}
 
-            <button
-              onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
-              className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm"
-            >
-              Explore Another Career
-            </button>
+            {/* Action buttons */}
+            <AnimatedSection delay={0.2}>
+              <div className="glass-card rounded-2xl p-6 space-y-4">
+                <h3 className="font-display font-semibold text-lg flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5 text-primary" /> What's Next?
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  You now have a complete roadmap to become a <span className="font-semibold text-foreground">{roadmap.career}</span>. 
+                  Download this roadmap as a PDF to track your progress, or start preparing for interviews right away!
+                </p>
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <button
+                    onClick={() => generatePDF(roadmap)}
+                    className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" /> Download Roadmap PDF
+                  </button>
+                  <button
+                    onClick={() => navigate("/interview-coach")}
+                    className="px-6 py-3 rounded-xl font-semibold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2"
+                  >
+                    <MessageSquare className="h-4 w-4" /> Start Interview Prep
+                  </button>
+                  <button
+                    onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
+                    className="px-6 py-3 rounded-xl font-semibold text-sm bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Explore Another Career
+                  </button>
+                </div>
+              </div>
+            </AnimatedSection>
           </motion.div>
         )}
       </AnimatePresence>
