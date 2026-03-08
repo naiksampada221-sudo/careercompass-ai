@@ -42,7 +42,10 @@ const App = () => (
                     </div>
                     <span className="font-display font-bold text-sm gradient-text">CareerCompass AI</span>
                   </div>
-                  <HeaderNav />
+                  <div className="flex items-center gap-3">
+                    <GreetingBadge />
+                    <HeaderNav />
+                  </div>
                 </header>
                 <main className="flex-1">
                   <Routes>
