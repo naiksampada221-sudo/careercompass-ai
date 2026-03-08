@@ -10,11 +10,12 @@ serve(async (req) => {
 
   try {
     const { skills, action } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Autocomplete action
+    // ---------- AUTOCOMPLETE (uses Lovable AI for speed) ----------
     if (action === "suggest_skills") {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
       const query = skills?.[0] || "";
       if (!query || query.length < 1) {
         return new Response(JSON.stringify({ suggestions: [] }), {
@@ -31,7 +32,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash-lite",
           messages: [
-            { role: "system", content: `You are a skill autocomplete engine. Given a partial query, return 6-8 relevant technical skills, tools, or technologies that match. Return ONLY a JSON array of strings. Example: ["Data Analysis", "Data Science", "Data Engineering", "Database Administration"]. No markdown.` },
+            { role: "system", content: "You are a skill autocomplete engine. Given a partial query, return 6-8 relevant technical skills, tools, or technologies that match. Return ONLY a JSON array of strings. No markdown." },
             { role: "user", content: `Query: "${query}"` },
           ],
           temperature: 0,
@@ -48,7 +49,7 @@ serve(async (req) => {
       });
     }
 
-    // Prediction action
+    // ---------- REAL-TIME CAREER PREDICTION (uses Google Gemini API directly with grounding) ----------
     if (!skills || !skills.length) {
       return new Response(JSON.stringify({ error: "Please provide at least one skill." }), {
         status: 400,
@@ -56,9 +57,12 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = `You are an expert career advisor with deep knowledge of the current Indian job market as of 2025-2026. You have up-to-date knowledge of job portals like Naukri, LinkedIn India, Indeed India, and Glassdoor India.
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
-Given a list of skills, predict the most suitable job roles with REAL salary data from the Indian job market.
+    const systemPrompt = `You are an expert career advisor. Using REAL-TIME data from the web, predict the most suitable job roles for someone with the given skills.
+
+You MUST search the web for current job listings, salary data, and market trends from sites like Naukri.com, LinkedIn India, Indeed India, Glassdoor India, and AmbitionBox.
 
 Return EXACTLY this JSON structure (no markdown, no extra text):
 {
@@ -68,7 +72,7 @@ Return EXACTLY this JSON structure (no markdown, no extra text):
       "match": 92,
       "salary_range": "₹8L - ₹15L",
       "demand": "High",
-      "reason": "One sentence with specific market insight explaining why this matches.",
+      "reason": "Specific market insight with real data points.",
       "key_skills_matched": ["skill1", "skill2"],
       "skills_to_learn": ["skill3"],
       "top_companies": ["Company1", "Company2", "Company3"],
@@ -80,55 +84,97 @@ Return EXACTLY this JSON structure (no markdown, no extra text):
 
 CRITICAL RULES:
 - Return 6-8 predictions sorted by match percentage (highest first)
-- match is a percentage 0-100 based on how well skills align with current job market demand
-- demand is one of: "Very High", "High", "Medium", "Low" — based on actual Indian hiring trends in 2025
-- salary_range MUST be realistic Indian salaries in ₹ Lakhs per annum (e.g. ₹6L - ₹12L for mid-level, ₹15L - ₹30L for senior, ₹40L+ for top roles)
-- Include salary ranges for 2-5 years experience unless skills suggest senior level
-- top_companies: list 3 real Indian companies or MNCs in India actively hiring for this role
-- job_openings_estimate: approximate number of current openings on Indian job portals
-- growth_outlook: real industry growth trend for this role in India
-- key_skills_matched: which user skills apply
-- skills_to_learn: 1-2 specific, actionable skills they should add
-- reason should reference actual market conditions, not generic statements
-- Be ACCURATE — don't inflate numbers. Use realistic data based on your knowledge of 2024-2025 Indian tech market`;
+- match: 0-100 based on real job market alignment
+- demand: "Very High", "High", "Medium", or "Low" based on CURRENT hiring trends
+- salary_range: realistic Indian salaries in ₹ Lakhs per annum (LPA) for 2-5 years experience
+- top_companies: 3 REAL companies actively hiring in India RIGHT NOW
+- job_openings_estimate: approximate current openings from job portals
+- growth_outlook: real industry growth data
+- Base everything on ACTUAL current market data, not assumptions`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `My skills: ${skills.join(", ")}\n\nAnalyze these skills against the current Indian job market and provide accurate career predictions with real salary data, hiring companies, and market trends.` },
-        ],
+    const userPrompt = `My skills: ${skills.join(", ")}
+
+Search the web for current job market data in India for these skills and provide accurate, real-time career predictions with actual salary ranges from Naukri/LinkedIn, real hiring companies, and current job opening counts.`;
+
+    // Call Gemini API directly with Google Search grounding enabled
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+    const geminiBody = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: systemPrompt + "\n\n" + userPrompt }],
+        },
+      ],
+      tools: [
+        {
+          google_search: {},
+        },
+      ],
+      generationConfig: {
         temperature: 0.1,
-      }),
+        maxOutputTokens: 4096,
+      },
+    };
+
+    console.log("Calling Gemini API with Google Search grounding...");
+
+    const response = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(geminiBody),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API error:", response.status, errorText);
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Usage limit reached. Please add credits." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
-    const data = await response.json();
-    let content = data.choices?.[0]?.message?.content || "";
-    content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const geminiData = await response.json();
+    console.log("Gemini response received");
+
+    // Extract text from Gemini response
+    let rawContent = "";
+    const candidates = geminiData.candidates;
+    if (candidates && candidates.length > 0) {
+      const parts = candidates[0].content?.parts || [];
+      for (const part of parts) {
+        if (part.text) rawContent += part.text;
+      }
+    }
+
+    if (!rawContent) {
+      throw new Error("No content in Gemini response");
+    }
+
+    // Clean and parse JSON
+    let content = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    
+    // Find the JSON object in the response
+    const jsonStart = content.indexOf("{");
+    const jsonEnd = content.lastIndexOf("}");
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      content = content.substring(jsonStart, jsonEnd + 1);
+    }
 
     const parsed = JSON.parse(content);
+
+    // Extract grounding metadata if available
+    const groundingMetadata = candidates?.[0]?.groundingMetadata;
+    if (groundingMetadata?.searchEntryPoint) {
+      parsed.grounded = true;
+      parsed.sources = groundingMetadata.groundingChunks?.map((chunk: any) => ({
+        title: chunk.web?.title || "",
+        url: chunk.web?.uri || "",
+      })) || [];
+    }
+
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -138,3 +184,4 @@ CRITICAL RULES:
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+});

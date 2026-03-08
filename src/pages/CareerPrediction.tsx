@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { TrendingUp, Plus, X, Sparkles, Briefcase, DollarSign, BarChart3, Zap, BookOpen, ChevronDown, ChevronUp, Loader2, Search, Building2, Users, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Plus, X, Sparkles, Briefcase, DollarSign, BarChart3, Zap, BookOpen, ChevronDown, ChevronUp, Loader2, Search, Building2, Users, ArrowUpRight, ExternalLink, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/BackButton";
@@ -41,6 +41,8 @@ export default function CareerPredictionPage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [grounded, setGrounded] = useState(false);
+  const [sources, setSources] = useState<{ title: string; url: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -53,10 +55,10 @@ export default function CareerPredictionPage() {
   const { user } = useAuth();
 
   const loadingSteps = [
-    { text: "Analyzing your skill set...", icon: Sparkles },
-    { text: "Matching with Indian job market...", icon: Briefcase },
-    { text: "Calculating compatibility scores...", icon: BarChart3 },
-    { text: "Generating career predictions...", icon: TrendingUp },
+    { text: "Searching Google for job market data...", icon: Sparkles },
+    { text: "Analyzing real-time salary trends...", icon: DollarSign },
+    { text: "Finding top hiring companies in India...", icon: Building2 },
+    { text: "Generating grounded career predictions...", icon: TrendingUp },
   ];
 
   // Fetch AI autocomplete suggestions
@@ -148,7 +150,8 @@ export default function CareerPredictionPage() {
       if (data?.error) throw new Error(data.error);
 
       setPredictions(data.predictions || []);
-
+      setGrounded(!!data.grounded);
+      setSources(data.sources || []);
       if (user) {
         saveActivity({
           userId: user.id,
@@ -172,6 +175,8 @@ export default function CareerPredictionPage() {
     setPredictions([]);
     setSkills([]);
     setExpandedIdx(null);
+    setGrounded(false);
+    setSources([]);
   };
 
   return (
@@ -380,12 +385,18 @@ export default function CareerPredictionPage() {
             animate={{ opacity: 1 }}
             className="max-w-3xl mx-auto space-y-6"
           >
-            {/* Skills used */}
+            {/* Grounding badge + Skills used */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="glass-card rounded-2xl p-5"
             >
+              {grounded && (
+                <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <Globe className="h-4 w-4 text-emerald-500" />
+                  <span className="text-xs font-medium text-emerald-500">Live data from Google Search • Powered by Gemini</span>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground mb-2 font-medium">Skills analyzed:</p>
               <div className="flex flex-wrap gap-1.5">
                 {skills.map((s) => (
@@ -573,6 +584,34 @@ export default function CareerPredictionPage() {
                 </motion.div>
               ))}
             </div>
+
+            {/* Sources */}
+            {sources.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="glass-card rounded-2xl p-5"
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Globe className="h-3 w-3" /> Sources from Google Search
+                </p>
+                <div className="space-y-1.5">
+                  {sources.slice(0, 5).map((s, i) => (
+                    <a
+                      key={i}
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-xs text-primary hover:underline truncate"
+                    >
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                      {s.title || s.url}
+                    </a>
+                  ))}
+                </div>
+              </motion.div>
+            )}
 
             {/* Try again */}
             <motion.div
