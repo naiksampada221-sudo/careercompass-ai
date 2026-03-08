@@ -41,6 +41,8 @@ export default function CareerPredictionPage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [grounded, setGrounded] = useState(false);
+  const [sources, setSources] = useState<{ title: string; url: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
