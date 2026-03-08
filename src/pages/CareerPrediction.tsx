@@ -428,8 +428,28 @@ export default function CareerPredictionPage() {
                     <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${demandColors[predictions[0].demand] || demandColors["Medium"]}`}>
                       <BarChart3 className="h-3 w-3" /> {predictions[0].demand} Demand
                     </span>
+                    {predictions[0].job_openings_estimate && (
+                      <span className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                        <Users className="h-3 w-3" /> {predictions[0].job_openings_estimate} openings
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground mt-3 max-w-md mx-auto">{predictions[0].reason}</p>
+
+                  {/* Growth & Companies */}
+                  {predictions[0].growth_outlook && (
+                    <div className="mt-3 flex items-center justify-center gap-1.5 text-xs font-medium text-emerald-500">
+                      <ArrowUpRight className="h-3 w-3" /> {predictions[0].growth_outlook}
+                    </div>
+                  )}
+                  {predictions[0].top_companies && predictions[0].top_companies.length > 0 && (
+                    <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                      <Building2 className="h-3 w-3 text-muted-foreground" />
+                      {predictions[0].top_companies.map((c) => (
+                        <span key={c} className="px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-xs">{c}</span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Skills breakdown for top prediction */}
                   <div className="mt-4 flex flex-wrap justify-center gap-1.5">
