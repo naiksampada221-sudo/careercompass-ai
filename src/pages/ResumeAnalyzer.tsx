@@ -424,7 +424,7 @@ export default function ResumeAnalyzerPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="flex items-center justify-center gap-6 mt-6 text-muted-foreground"
+              className="flex items-center justify-center gap-4 sm:gap-6 mt-6 text-muted-foreground flex-wrap"
             >
               <div className="flex items-center gap-1.5 text-xs">
                 <Shield className="h-3.5 w-3.5 text-green-500" />

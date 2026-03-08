@@ -480,7 +480,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground mb-6">Based on your activity and preparation level</p>
                 
                 {/* Gauge */}
-                <div className="relative mx-auto" style={{ width: 220, height: 120 }}>
+                <div className="relative mx-auto" style={{ width: "min(220px, 100%)", height: 120 }}>
                   <svg width={220} height={120} viewBox="0 0 220 120">
                     {/* Background arc */}
                     <path
