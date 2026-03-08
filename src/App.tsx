@@ -67,7 +67,7 @@ const App = () => (
                     </MagneticButton>
                     <span className="font-display font-bold text-xs sm:text-sm gradient-text tracking-wide truncate">CareerCompass AI</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     <GreetingBadge />
                     <NotificationBell />
                     <HeaderNav />

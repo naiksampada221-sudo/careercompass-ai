@@ -330,7 +330,7 @@ export default function HomePage() {
                   <Sparkles className="h-7 w-7 text-primary-foreground" />
                 </motion.div>
                 <TextReveal>
-                  <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
+                  <h2 className="font-display text-2xl sm:text-3xl lg:text-5xl font-bold text-primary-foreground mb-4">
                     Ready to Transform <br />Your Career?
                   </h2>
                 </TextReveal>
