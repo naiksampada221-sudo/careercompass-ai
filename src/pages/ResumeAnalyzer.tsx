@@ -29,19 +29,26 @@ export default function ResumeAnalyzerPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<ResumeResult | null>(null);
   const [useText, setUseText] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useState<HTMLInputElement | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleAnalyze = async (text: string) => {
+  const handleAnalyze = async (text: string, fileBase64?: string, fileName?: string) => {
     setAnalyzing(true);
     setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("resume-analyzer", {
-        body: { resumeText: text },
-      });
+      const body: Record<string, string> = {};
+      if (fileBase64 && fileName) {
+        body.fileBase64 = fileBase64;
+        body.fileName = fileName;
+      } else {
+        body.resumeText = text;
+      }
+
+      const { data, error } = await supabase.functions.invoke("resume-analyzer", { body });
       if (error) throw error;
       setResult(data.result);
-      // Save to history
       if (user) {
         saveActivity({
           userId: user.id,
@@ -63,13 +70,23 @@ export default function ResumeAnalyzerPage() {
   const handleFile = (f: File | null) => {
     if (!f) return;
     setFile(f);
-    // Read file as text (for txt) or use placeholder for PDF
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      handleAnalyze(text);
-    };
-    reader.readAsText(f);
+    const isBinary = /\.(pdf|doc|docx)$/i.test(f.name);
+
+    if (isBinary) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = (e.target?.result as string).split(",")[1];
+        handleAnalyze("", base64, f.name);
+      };
+      reader.readAsDataURL(f);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        handleAnalyze(text);
+      };
+      reader.readAsText(f);
+    }
   };
 
   const handleTextSubmit = () => {
@@ -79,7 +96,21 @@ export default function ResumeAnalyzerPage() {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
     handleFile(e.dataTransfer.files?.[0] || null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
   };
 
   const handleReset = () => {
@@ -111,20 +142,32 @@ export default function ResumeAnalyzerPage() {
 
           {!useText ? (
             <div
-              onDragOver={(e) => e.preventDefault()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className="relative glass-card rounded-3xl p-16 text-center cursor-pointer card-hover border-2 border-dashed border-border hover:border-primary/40 transition-all group"
+              onClick={() => {
+                const input = document.getElementById("resume-file-input") as HTMLInputElement;
+                input?.click();
+              }}
+              className={`relative glass-card rounded-3xl p-16 text-center cursor-pointer card-hover border-2 border-dashed transition-all group ${
+                isDragging
+                  ? "border-primary bg-primary/5 scale-[1.02]"
+                  : "border-border hover:border-primary/40"
+              }`}
             >
               <input
+                id="resume-file-input"
                 type="file"
                 accept=".pdf,.txt,.doc,.docx"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onChange={(e) => handleFile(e.target.files?.[0] || null)}
+                className="hidden"
+                onChange={(e) => { handleFile(e.target.files?.[0] || null); e.target.value = ""; }}
               />
-              <div className="w-16 h-16 rounded-2xl gradient-btn flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
+              <div className={`w-16 h-16 rounded-2xl gradient-btn flex items-center justify-center mx-auto mb-5 transition-transform ${isDragging ? "scale-125" : "group-hover:scale-110"}`}>
                 <Upload className="h-8 w-8" />
               </div>
-              <h3 className="font-display font-semibold text-xl mb-2">Drag & Drop your Resume</h3>
+              <h3 className="font-display font-semibold text-xl mb-2">
+                {isDragging ? "Drop your file here!" : "Drag & Drop your Resume"}
+              </h3>
               <p className="text-muted-foreground text-sm mb-4">or click to browse files</p>
               <span className="inline-block px-3 py-1 rounded-lg bg-accent text-accent-foreground text-xs font-medium">TXT, PDF, DOC supported</span>
             </div>

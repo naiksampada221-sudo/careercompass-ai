@@ -9,24 +9,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { resumeText } = await req.json();
-    if (!resumeText) throw new Error("Resume text is required");
+    const { resumeText, fileBase64, fileName } = await req.json();
+    if (!resumeText && !fileBase64) throw new Error("Resume text or file is required");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional resume analyst. Analyze the given resume text and return a JSON object with these fields:
+    const systemPrompt = `You are a professional resume analyst. Analyze the given resume and return a JSON object with these fields:
 - score (number 0-100): overall resume quality score
 - skills (string[]): detected technical and soft skills
 - education (string[]): education entries
@@ -37,9 +26,45 @@ serve(async (req) => {
 - weaknesses (string[]): 3-4 resume weaknesses
 - suggestions (string[]): 4-5 actionable improvement suggestions
 
-Be thorough and realistic in your analysis. Return ONLY valid JSON, no markdown.`
-          },
-          { role: "user", content: `Analyze this resume:\n\n${resumeText}` }
+Be thorough and realistic in your analysis. Return ONLY valid JSON, no markdown.`;
+
+    // Build messages based on input type
+    const userContent: any[] = [];
+    
+    if (fileBase64) {
+      // Determine MIME type
+      const ext = (fileName || "").split(".").pop()?.toLowerCase();
+      const mimeMap: Record<string, string> = {
+        pdf: "application/pdf",
+        doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        txt: "text/plain",
+      };
+      const mimeType = mimeMap[ext || ""] || "application/octet-stream";
+
+      userContent.push({
+        type: "file",
+        file: {
+          filename: fileName || "resume",
+          file_data: `data:${mimeType};base64,${fileBase64}`,
+        },
+      });
+      userContent.push({ type: "text", text: "Analyze this resume file thoroughly." });
+    } else {
+      userContent.push({ type: "text", text: `Analyze this resume:\n\n${resumeText}` });
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
         ],
       }),
     });
