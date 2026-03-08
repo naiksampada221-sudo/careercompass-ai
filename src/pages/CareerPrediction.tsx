@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { TrendingUp, Plus, X, Sparkles, Briefcase, DollarSign, BarChart3, Zap, BookOpen, ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
+import { TrendingUp, Plus, X, Sparkles, Briefcase, DollarSign, BarChart3, Zap, BookOpen, ChevronDown, ChevronUp, Loader2, Search, Building2, Users, ArrowUpRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/BackButton";
@@ -18,6 +18,9 @@ interface Prediction {
   reason: string;
   key_skills_matched: string[];
   skills_to_learn: string[];
+  top_companies?: string[];
+  job_openings_estimate?: string;
+  growth_outlook?: string;
 }
 
 const popularSkills = [
@@ -425,8 +428,28 @@ export default function CareerPredictionPage() {
                     <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${demandColors[predictions[0].demand] || demandColors["Medium"]}`}>
                       <BarChart3 className="h-3 w-3" /> {predictions[0].demand} Demand
                     </span>
+                    {predictions[0].job_openings_estimate && (
+                      <span className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                        <Users className="h-3 w-3" /> {predictions[0].job_openings_estimate} openings
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground mt-3 max-w-md mx-auto">{predictions[0].reason}</p>
+
+                  {/* Growth & Companies */}
+                  {predictions[0].growth_outlook && (
+                    <div className="mt-3 flex items-center justify-center gap-1.5 text-xs font-medium text-emerald-500">
+                      <ArrowUpRight className="h-3 w-3" /> {predictions[0].growth_outlook}
+                    </div>
+                  )}
+                  {predictions[0].top_companies && predictions[0].top_companies.length > 0 && (
+                    <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                      <Building2 className="h-3 w-3 text-muted-foreground" />
+                      {predictions[0].top_companies.map((c) => (
+                        <span key={c} className="px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-xs">{c}</span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Skills breakdown for top prediction */}
                   <div className="mt-4 flex flex-wrap justify-center gap-1.5">
@@ -482,6 +505,47 @@ export default function CareerPredictionPage() {
                         className="overflow-hidden"
                       >
                         <div className="px-5 pb-5 space-y-3 border-t border-border pt-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                            {p.job_openings_estimate && (
+                              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                                <Users className="h-3.5 w-3.5 text-primary shrink-0" />
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground">Openings</p>
+                                  <p className="text-xs font-semibold">{p.job_openings_estimate}</p>
+                                </div>
+                              </div>
+                            )}
+                            {p.growth_outlook && (
+                              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                                <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground">Growth</p>
+                                  <p className="text-xs font-semibold">{p.growth_outlook}</p>
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                              <DollarSign className="h-3.5 w-3.5 text-primary shrink-0" />
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Salary (INR)</p>
+                                <p className="text-xs font-semibold">{p.salary_range}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {p.top_companies && p.top_companies.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                                <Building2 className="h-3 w-3 text-primary" /> Top Hiring Companies
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {p.top_companies.map((c) => (
+                                  <span key={c} className="px-2 py-0.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">{c}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           <div>
                             <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
                               <Zap className="h-3 w-3 text-primary" /> Matched Skills
