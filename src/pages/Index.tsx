@@ -132,23 +132,19 @@ export default function HomePage() {
               <Sparkles className="h-3.5 w-3.5 text-purple-300 animate-pulse" />
             </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.7 }}
-              className="font-display text-4xl sm:text-5xl lg:text-7xl font-bold text-primary-foreground mb-6 leading-[1.05] tracking-tight"
-            >
-              Your AI-Powered
-              <br />
-              <motion.span
-                className="bg-gradient-to-r from-purple-400 via-violet-400 to-blue-400 bg-clip-text text-transparent inline-block"
-                animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-                style={{ backgroundSize: "200% auto" }}
+            <TextReveal>
+              <motion.h1
+                className="font-display text-4xl sm:text-5xl lg:text-7xl font-bold text-primary-foreground mb-6 leading-[1.05] tracking-tight"
               >
-                Career Engine
-              </motion.span>
-            </motion.h1>
+                Your AI-Powered
+                <br />
+                <TypingText
+                  words={["Career Engine", "Resume Analyzer", "Interview Coach", "Skill Navigator"]}
+                  className="bg-gradient-to-r from-purple-400 via-violet-400 to-blue-400 bg-clip-text text-transparent"
+                  interval={2500}
+                />
+              </motion.h1>
+            </TextReveal>
 
             <motion.p
               initial={{ opacity: 0 }}
@@ -165,21 +161,25 @@ export default function HomePage() {
               transition={{ delay: 0.6 }}
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <Link
-                to="/resume-analyzer"
-                className="group inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 text-primary-foreground font-semibold shadow-[0_8px_30px_-6px_hsla(258,90%,62%,0.5)] hover:shadow-[0_16px_50px_-6px_hsla(258,90%,62%,0.6)] hover:-translate-y-1 transition-all duration-300 shimmer"
-              >
-                <Sparkles className="h-4 w-4" /> Analyze My Resume <ArrowRight className="h-4 w-4 group-hover:translate-x-1.5 transition-transform" />
-              </Link>
-              <a
-                href="#features"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl border border-primary-foreground/15 text-primary-foreground/80 font-semibold backdrop-blur-sm hover:bg-primary-foreground/5 hover:border-primary-foreground/25 transition-all duration-300"
-              >
-                Explore Features
-              </a>
+              <MagneticButton strength={0.2}>
+                <Link
+                  to="/resume-analyzer"
+                  className="group inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 text-primary-foreground font-semibold shadow-[0_8px_30px_-6px_hsla(258,90%,62%,0.5)] hover:shadow-[0_16px_50px_-6px_hsla(258,90%,62%,0.6)] hover:-translate-y-1 transition-all duration-300 shimmer"
+                >
+                  <Sparkles className="h-4 w-4" /> Analyze My Resume <ArrowRight className="h-4 w-4 group-hover:translate-x-1.5 transition-transform" />
+                </Link>
+              </MagneticButton>
+              <MagneticButton strength={0.2}>
+                <a
+                  href="#features"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl border border-primary-foreground/15 text-primary-foreground/80 font-semibold backdrop-blur-sm hover:bg-primary-foreground/5 hover:border-primary-foreground/25 transition-all duration-300"
+                >
+                  Explore Features
+                </a>
+              </MagneticButton>
             </motion.div>
 
-            {/* Stats bar */}
+            {/* Stats bar with animated counters */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -192,9 +192,12 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 + i * 0.1 }}
-                  className="text-center px-4 py-3 rounded-xl bg-primary-foreground/5 backdrop-blur-sm border border-primary-foreground/10"
+                  whileHover={{ scale: 1.05, borderColor: "hsla(258, 90%, 62%, 0.3)" }}
+                  className="text-center px-4 py-3 rounded-xl bg-primary-foreground/5 backdrop-blur-sm border border-primary-foreground/10 transition-colors"
                 >
-                  <div className="font-display font-bold text-xl text-primary-foreground">{stat.value}</div>
+                  <div className="font-display font-bold text-xl text-primary-foreground">
+                    <AnimatedCounter value={stat.value} />
+                  </div>
                   <div className="text-primary-foreground/50 text-xs mt-0.5">{stat.label}</div>
                 </motion.div>
               ))}
