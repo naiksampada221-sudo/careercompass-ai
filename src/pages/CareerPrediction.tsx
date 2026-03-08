@@ -150,7 +150,8 @@ export default function CareerPredictionPage() {
       if (data?.error) throw new Error(data.error);
 
       setPredictions(data.predictions || []);
-
+      setGrounded(!!data.grounded);
+      setSources(data.sources || []);
       if (user) {
         saveActivity({
           userId: user.id,
