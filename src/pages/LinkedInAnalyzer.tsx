@@ -67,6 +67,8 @@ export default function LinkedInAnalyzerPage() {
       if (data?.error) {
         if (data.showManualInput) {
           setShowManualInput(true);
+          toast.info("LinkedIn limits public access. Please paste your profile content below and try again.", { duration: 6000 });
+          return;
         }
         throw new Error(data.error);
       }
