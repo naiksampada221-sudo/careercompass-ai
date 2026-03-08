@@ -385,12 +385,18 @@ export default function CareerPredictionPage() {
             animate={{ opacity: 1 }}
             className="max-w-3xl mx-auto space-y-6"
           >
-            {/* Skills used */}
+            {/* Grounding badge + Skills used */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="glass-card rounded-2xl p-5"
             >
+              {grounded && (
+                <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <Globe className="h-4 w-4 text-emerald-500" />
+                  <span className="text-xs font-medium text-emerald-500">Live data from Google Search • Powered by Gemini</span>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground mb-2 font-medium">Skills analyzed:</p>
               <div className="flex flex-wrap gap-1.5">
                 {skills.map((s) => (
