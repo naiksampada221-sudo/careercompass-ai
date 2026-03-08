@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, User, Sparkles, KeyRound, Shield, Zap, Star, CheckCircle2, Timer } from "lucide-react";
+import { Compass, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, User, Sparkles, KeyRound, Shield, Zap, Star, CheckCircle2, Timer, Send, Inbox, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
