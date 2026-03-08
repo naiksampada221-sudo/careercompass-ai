@@ -274,6 +274,13 @@ export default function LinkedInAnalyzerPage() {
               suggestions={result.suggestions}
               headlineSuggestion={result.headline_suggestion}
               summarySuggestion={result.summary_suggestion}
+              scores={{
+                headlineScore: result.headline_score,
+                summaryScore: result.summary_score,
+                experienceScore: result.experience_score,
+                skillsScore: result.skills_score,
+                networkScore: result.network_score,
+              }}
             />
 
             <motion.button
