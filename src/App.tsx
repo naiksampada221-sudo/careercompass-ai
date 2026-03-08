@@ -22,7 +22,6 @@ import CareerRoadmap from "./pages/CareerRoadmap";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import History from "./pages/History";
-import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
