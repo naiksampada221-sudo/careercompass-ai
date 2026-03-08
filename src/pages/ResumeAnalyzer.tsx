@@ -29,19 +29,26 @@ export default function ResumeAnalyzerPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<ResumeResult | null>(null);
   const [useText, setUseText] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useState<HTMLInputElement | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleAnalyze = async (text: string) => {
+  const handleAnalyze = async (text: string, fileBase64?: string, fileName?: string) => {
     setAnalyzing(true);
     setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("resume-analyzer", {
-        body: { resumeText: text },
-      });
+      const body: Record<string, string> = {};
+      if (fileBase64 && fileName) {
+        body.fileBase64 = fileBase64;
+        body.fileName = fileName;
+      } else {
+        body.resumeText = text;
+      }
+
+      const { data, error } = await supabase.functions.invoke("resume-analyzer", { body });
       if (error) throw error;
       setResult(data.result);
-      // Save to history
       if (user) {
         saveActivity({
           userId: user.id,
@@ -63,13 +70,23 @@ export default function ResumeAnalyzerPage() {
   const handleFile = (f: File | null) => {
     if (!f) return;
     setFile(f);
-    // Read file as text (for txt) or use placeholder for PDF
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      handleAnalyze(text);
-    };
-    reader.readAsText(f);
+    const isBinary = /\.(pdf|doc|docx)$/i.test(f.name);
+
+    if (isBinary) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = (e.target?.result as string).split(",")[1];
+        handleAnalyze("", base64, f.name);
+      };
+      reader.readAsDataURL(f);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        handleAnalyze(text);
+      };
+      reader.readAsText(f);
+    }
   };
 
   const handleTextSubmit = () => {
@@ -79,7 +96,21 @@ export default function ResumeAnalyzerPage() {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
     handleFile(e.dataTransfer.files?.[0] || null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
   };
 
   const handleReset = () => {
