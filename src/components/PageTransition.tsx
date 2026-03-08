@@ -4,9 +4,9 @@ import { ReactNode } from "react";
 const pageVariants = {
   initial: {
     opacity: 0,
-    y: 20,
-    scale: 0.98,
-    filter: "blur(4px)",
+    y: 30,
+    scale: 0.97,
+    filter: "blur(8px)",
   },
   animate: {
     opacity: 1,
@@ -16,16 +16,16 @@ const pageVariants = {
   },
   exit: {
     opacity: 0,
-    y: -15,
-    scale: 0.98,
-    filter: "blur(4px)",
+    y: -20,
+    scale: 0.97,
+    filter: "blur(6px)",
   },
 };
 
 const pageTransition = {
   type: "tween" as const,
-  ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
-  duration: 0.4,
+  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+  duration: 0.5,
 };
 
 export default function PageTransition({ children }: { children: ReactNode }) {
