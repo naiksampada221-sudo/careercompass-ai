@@ -114,6 +114,29 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 20%, hsla(258, 90%, 62%, 0.06), transparent 50%),
+      radial-gradient(ellipse 60% 80% at 90% 80%, hsla(220, 70%, 55%, 0.05), transparent 50%),
+      radial-gradient(ellipse 50% 50% at 50% 50%, hsla(258, 60%, 50%, 0.03), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+    animation: bg-drift 20s ease-in-out infinite alternate;
+  }
+  .dark body::before,
+  body:has(.dark)::before {
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 20%, hsla(258, 90%, 62%, 0.08), transparent 50%),
+      radial-gradient(ellipse 60% 80% at 90% 80%, hsla(220, 70%, 55%, 0.06), transparent 50%),
+      radial-gradient(ellipse 50% 50% at 50% 50%, hsla(258, 60%, 50%, 0.04), transparent 60%);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', sans-serif;
@@ -159,12 +182,30 @@
     transform: translateY(-4px);
   }
 
+  .header-glow {
+    background: linear-gradient(
+      90deg,
+      hsla(258, 90%, 62%, 0.03) 0%,
+      hsla(220, 70%, 55%, 0.05) 50%,
+      hsla(258, 90%, 62%, 0.03) 100%
+    ), hsl(var(--background) / 0.6);
+    border-image: linear-gradient(
+      90deg,
+      transparent,
+      hsla(258, 90%, 62%, 0.2),
+      hsla(220, 70%, 55%, 0.2),
+      transparent
+    ) 1;
+  }
+
   .section-padding {
     @apply px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24;
   }
 
   .page-container {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12;
+    position: relative;
+    z-index: 1;
   }
 }
 
@@ -181,6 +222,11 @@
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
+  }
+  @keyframes bg-drift {
+    0% { transform: scale(1) translate(0, 0); }
+    50% { transform: scale(1.05) translate(-2%, 1%); }
+    100% { transform: scale(1) translate(1%, -1%); }
   }
   .animate-float {
     animation: float 6s ease-in-out infinite;
