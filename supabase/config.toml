@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.interview-coach]
 verify_jwt = false
+
+[functions.career-prediction]
+verify_jwt = false
