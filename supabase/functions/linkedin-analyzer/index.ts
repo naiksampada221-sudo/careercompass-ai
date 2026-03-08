@@ -29,13 +29,16 @@ serve(async (req) => {
         );
       }
 
-      // Extract username from URL for search
+      // Extract profile handle from URL for search enrichment
       const urlMatch = profileUrl.match(/linkedin\.com\/in\/([^\/\?]+)/i);
-      const username = urlMatch ? urlMatch[1].replace(/-/g, " ") : profileUrl;
+      const profileHandle = urlMatch ? urlMatch[1] : "";
+      const username = profileHandle ? profileHandle.replace(/-/g, " ") : profileUrl;
 
       console.log("Searching for LinkedIn profile:", username);
 
-      // Use Firecrawl search to find publicly available profile info
+      const gatheredChunks: string[] = [];
+
+      // 1) Firecrawl search + scrape snippets
       const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
         method: "POST",
         headers: {
@@ -43,8 +46,8 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: `site:linkedin.com/in "${username}" profile summary experience skills`,
-          limit: 5,
+          query: `site:linkedin.com/in \"${username}\" profile summary experience skills`,
+          limit: 8,
           scrapeOptions: { formats: ["markdown"] },
         }),
       });
@@ -59,43 +62,64 @@ serve(async (req) => {
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-
-        // Graceful fallback (not an exception) so frontend can switch to manual mode
-        return new Response(
-          JSON.stringify({
-            success: false,
-            showManualInput: true,
-            error: "Could not fetch enough public profile data from URL. Please paste your profile content below.",
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Gather all scraped content from search results
-      const results = searchData.data || [];
-      const gathered = results
-        .map((r: any) => {
-          const parts = [];
+      } else {
+        const results = searchData.data || [];
+        for (const r of results) {
+          const parts: string[] = [];
           if (r.title) parts.push(`Title: ${r.title}`);
           if (r.description) parts.push(`Description: ${r.description}`);
           if (r.markdown) parts.push(r.markdown);
-          return parts.join("\n");
-        })
-        .join("\n\n---\n\n");
-
-      if (gathered.length < 50) {
-        // Graceful fallback (not an exception) so frontend can switch to manual mode
-        return new Response(
-          JSON.stringify({
-            success: false,
-            showManualInput: true,
-            error: "LinkedIn limits public access to profiles. Please paste your profile content using the manual input option below.",
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+          const chunk = parts.join("\n").trim();
+          if (chunk) gatheredChunks.push(chunk);
+        }
       }
 
-      contentToAnalyze = `LinkedIn Profile URL: ${profileUrl}\n\nPublicly available profile information:\n\n${gathered}`;
+      // 2) SerpAPI fallback enrichment (if available)
+      const SERP_API_KEY = Deno.env.get("SERP_API_KEY") || "";
+      if (SERP_API_KEY) {
+        try {
+          const params = new URLSearchParams({
+            engine: "google",
+            q: `site:linkedin.com/in \"${username}\"`,
+            hl: "en",
+            num: "10",
+            api_key: SERP_API_KEY,
+          });
+
+          const serpResp = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
+          if (serpResp.ok) {
+            const serpData = await serpResp.json();
+            const organic = serpData.organic_results || [];
+
+            for (const item of organic) {
+              const isLikelyLinkedIn = String(item.link || "").includes("linkedin.com/in/");
+              if (!isLikelyLinkedIn) continue;
+
+              const parts: string[] = [];
+              if (item.title) parts.push(`Search Title: ${item.title}`);
+              if (item.snippet) parts.push(`Search Snippet: ${item.snippet}`);
+              if (item.link) parts.push(`Source: ${item.link}`);
+              const chunk = parts.join("\n").trim();
+              if (chunk) gatheredChunks.push(chunk);
+            }
+          } else {
+            const serpErr = await serpResp.text();
+            console.error("SerpAPI search error:", serpResp.status, serpErr);
+          }
+        } catch (serpError) {
+          console.error("SerpAPI fallback failed:", serpError);
+        }
+      }
+
+      const gathered = gatheredChunks.join("\n\n---\n\n").trim();
+
+      // Always continue analysis even with limited data so URL flow never hard-fails
+      if (gathered.length > 0) {
+        contentToAnalyze = `LinkedIn Profile URL: ${profileUrl}\nProfile Handle: ${profileHandle || "unknown"}\n\nPublic profile signals from web search:\n\n${gathered}`;
+      } else {
+        contentToAnalyze = `LinkedIn Profile URL: ${profileUrl}\nProfile Handle: ${profileHandle || "unknown"}\n\nNo public profile content could be scraped due to LinkedIn restrictions. Provide best-effort analysis using URL handle patterns and general LinkedIn optimization best practices.`;
+      }
+
       console.log("Gathered content length:", contentToAnalyze.length);
     }
 
