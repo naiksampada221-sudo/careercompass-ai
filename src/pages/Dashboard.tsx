@@ -303,7 +303,230 @@ export default function DashboardPage() {
           </AnimatedSection>
         )}
 
-        {/* Welcome card */}
+        {/* Skills Radar & Distribution Charts */}
+        {user && history && history.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Radar Chart - Skills Assessment */}
+            <AnimatedSection delay={0.2}>
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="glass-card-premium rounded-2xl p-6 relative overflow-hidden"
+              >
+                <motion.div
+                  className="absolute -bottom-20 -left-20 w-48 h-48 rounded-full opacity-10 pointer-events-none"
+                  style={{ background: "radial-gradient(circle, hsl(var(--secondary)), transparent)" }}
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                />
+                <div className="flex items-center gap-3 mb-4 relative">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", delay: 0.4 }}
+                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg"
+                  >
+                    <Target className="h-5 w-5 text-primary-foreground" />
+                  </motion.div>
+                  <div>
+                    <h3 className="font-display font-semibold text-base">Skills Radar</h3>
+                    <p className="text-xs text-muted-foreground">Your skill assessment</p>
+                  </div>
+                </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5, duration: 0.8 }}
+                  style={{ height: 250 }}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={[
+                      { skill: "Technical", value: Math.min(95, 60 + totalActivities * 3) },
+                      { skill: "Communication", value: Math.min(90, 55 + totalActivities * 2) },
+                      { skill: "Problem Solving", value: Math.min(92, 65 + totalActivities * 2.5) },
+                      { skill: "Leadership", value: Math.min(85, 45 + totalActivities * 2) },
+                      { skill: "Creativity", value: Math.min(88, 50 + totalActivities * 3) },
+                      { skill: "Adaptability", value: Math.min(90, 58 + totalActivities * 2.5) },
+                    ]}>
+                      <PolarGrid stroke="hsl(var(--border))" />
+                      <PolarAngleAxis dataKey="skill" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                      <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
+                      <Radar
+                        dataKey="value"
+                        stroke="hsl(var(--primary))"
+                        fill="hsl(var(--primary))"
+                        fillOpacity={0.15}
+                        strokeWidth={2}
+                        animationDuration={1500}
+                        dot={{ r: 4, fill: "hsl(var(--primary))", stroke: "hsl(var(--background))", strokeWidth: 2 }}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </motion.div>
+              </motion.div>
+            </AnimatedSection>
+
+            {/* Donut Chart - Activity Distribution */}
+            <AnimatedSection delay={0.25}>
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="glass-card-premium rounded-2xl p-6 relative overflow-hidden"
+              >
+                <motion.div
+                  className="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-10 pointer-events-none"
+                  style={{ background: "radial-gradient(circle, hsl(var(--primary)), transparent)" }}
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                />
+                <div className="flex items-center gap-3 mb-4 relative">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", delay: 0.5 }}
+                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg"
+                  >
+                    <Shield className="h-5 w-5 text-primary-foreground" />
+                  </motion.div>
+                  <div>
+                    <h3 className="font-display font-semibold text-base">Activity Distribution</h3>
+                    <p className="text-xs text-muted-foreground">Usage breakdown</p>
+                  </div>
+                </div>
+                <motion.div
+                  initial={{ opacity: 0, rotate: -90 }}
+                  animate={{ opacity: 1, rotate: 0 }}
+                  transition={{ delay: 0.6, duration: 1 }}
+                  style={{ height: 250 }}
+                  className="flex items-center"
+                >
+                  {(() => {
+                    const resumeCount = history.filter((h: any) => h.activity_type === "resume_analysis").length;
+                    const atsCount = history.filter((h: any) => h.activity_type === "ats_scan").length;
+                    const otherCount = history.length - resumeCount - atsCount;
+                    const donutData = [
+                      { name: "Resume", value: resumeCount || 1 },
+                      { name: "ATS Scan", value: atsCount || 1 },
+                      { name: "Other", value: otherCount || 1 },
+                    ];
+                    const COLORS = ["hsl(258, 90%, 65%)", "hsl(220, 70%, 55%)", "hsl(170, 70%, 45%)"];
+                    return (
+                      <div className="w-full flex items-center gap-6">
+                        <div className="flex-1" style={{ height: 200 }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={donutData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={80}
+                                paddingAngle={4}
+                                dataKey="value"
+                                animationDuration={1200}
+                                animationBegin={600}
+                                stroke="none"
+                              >
+                                {donutData.map((_entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="space-y-3">
+                          {[
+                            { label: "Resume", color: "bg-[hsl(258,90%,65%)]" },
+                            { label: "ATS Scan", color: "bg-[hsl(220,70%,55%)]" },
+                            { label: "Other", color: "bg-[hsl(170,70%,45%)]" },
+                          ].map((item, i) => (
+                            <motion.div
+                              key={item.label}
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.8 + i * 0.1 }}
+                              className="flex items-center gap-2"
+                            >
+                              <span className={`w-3 h-3 rounded-full ${item.color} shadow-lg`} />
+                              <span className="text-xs text-muted-foreground font-medium">{item.label}</span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </motion.div>
+              </motion.div>
+            </AnimatedSection>
+          </div>
+        )}
+
+        {/* Hiring Probability Gauge */}
+        {user && history && history.length > 0 && (
+          <AnimatedSection delay={0.3}>
+            <motion.div
+              whileHover={{ y: -2 }}
+              className="glass-card-premium rounded-2xl p-6 relative overflow-hidden"
+            >
+              <motion.div
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 rounded-full opacity-10 pointer-events-none"
+                style={{ background: "radial-gradient(ellipse, hsl(var(--primary)), transparent)" }}
+                animate={{ opacity: [0.05, 0.15, 0.05] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              <div className="text-center relative">
+                <h3 className="font-display font-semibold text-base mb-2 flex items-center justify-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Recruiter Hiring Probability
+                </h3>
+                <p className="text-xs text-muted-foreground mb-6">Based on your activity and preparation level</p>
+                
+                {/* Gauge */}
+                <div className="relative mx-auto" style={{ width: 220, height: 120 }}>
+                  <svg width={220} height={120} viewBox="0 0 220 120">
+                    {/* Background arc */}
+                    <path
+                      d="M 20 110 A 90 90 0 0 1 200 110"
+                      fill="none"
+                      stroke="hsl(var(--muted))"
+                      strokeWidth="14"
+                      strokeLinecap="round"
+                    />
+                    {/* Colored arc */}
+                    <motion.path
+                      d="M 20 110 A 90 90 0 0 1 200 110"
+                      fill="none"
+                      stroke="url(#gaugeGradient)"
+                      strokeWidth="14"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: Math.min(0.95, 0.3 + totalActivities * 0.06) }}
+                      transition={{ duration: 2, ease: "easeOut", delay: 0.5 }}
+                    />
+                    <defs>
+                      <linearGradient id="gaugeGradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="hsl(0, 80%, 55%)" />
+                        <stop offset="50%" stopColor="hsl(45, 90%, 55%)" />
+                        <stop offset="100%" stopColor="hsl(145, 70%, 50%)" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <motion.div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1, type: "spring" }}
+                  >
+                    <span className="font-display text-3xl font-bold gradient-text">
+                      {Math.min(95, 30 + totalActivities * 6)}%
+                    </span>
+                  </motion.div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {totalActivities < 3 ? "Keep practicing to improve!" : totalActivities < 8 ? "Good progress, keep going!" : "Excellent preparation level! 🎉"}
+                </p>
+              </div>
+            </motion.div>
+          </AnimatedSection>
+        )}
         {(!user || !history?.length) && (
           <AnimatedSection>
             <motion.div
