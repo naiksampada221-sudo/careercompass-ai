@@ -129,17 +129,20 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {steps.map((s, i) => (
               <AnimatedSection key={s.title} delay={i * 0.12}>
-                <div className="relative text-center group">
+                <Link to={s.link} className="relative text-center group block">
                   {i < steps.length - 1 && (
                     <div className="hidden lg:block absolute top-10 left-[60%] w-[80%] h-px bg-gradient-to-r from-border to-transparent" />
                   )}
-                  <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-3xl glass-card mb-5 group-hover:shadow-[var(--shadow-elevated)] transition-shadow">
+                  <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-3xl glass-card mb-5 group-hover:shadow-[var(--shadow-elevated)] group-hover:scale-110 transition-all duration-300">
                     <s.icon className="h-8 w-8 text-primary" />
                     <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full gradient-btn text-xs font-bold flex items-center justify-center shadow-lg">{s.num}</span>
                   </div>
-                  <h3 className="font-display font-semibold mb-2">{s.title}</h3>
+                  <h3 className="font-display font-semibold mb-2 group-hover:text-primary transition-colors">{s.title}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">{s.desc}</p>
-                </div>
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
+                    Start <ArrowRight className="h-3 w-3" />
+                  </span>
+                </Link>
               </AnimatedSection>
             ))}
           </div>
