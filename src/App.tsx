@@ -19,6 +19,7 @@ import VoiceInterview from "./pages/VoiceInterview";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
 import CareerRoadmap from "./pages/CareerRoadmap";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import History from "./pages/History";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -64,6 +65,7 @@ const App = () => (
                     <Route path="/linkedin-analyzer" element={<LinkedInAnalyzer />} />
                     <Route path="/career-roadmap" element={<CareerRoadmap />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="/history" element={<History />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

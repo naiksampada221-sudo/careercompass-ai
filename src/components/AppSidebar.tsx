@@ -1,4 +1,4 @@
-import { FileText, Search, TrendingUp, Compass, Brain, Mic, Linkedin, Map, LayoutDashboard, Home, Sun, Moon, Clock, LogIn, LogOut, User } from "lucide-react";
+import { FileText, Search, TrendingUp, Compass, Brain, Mic, Linkedin, Map, LayoutDashboard, Home, Sun, Moon, Clock, LogIn, LogOut, User, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -27,6 +27,7 @@ const navItems = [
   { title: "LinkedIn Analyzer", url: "/linkedin-analyzer", icon: Linkedin },
   { title: "Career Roadmap", url: "/career-roadmap", icon: Map },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Profile", url: "/profile", icon: Settings },
   { title: "History", url: "/history", icon: Clock },
 ];
 
