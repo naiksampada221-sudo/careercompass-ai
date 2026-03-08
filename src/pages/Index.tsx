@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion, useMotionValue, useSpring } from "framer-motion";
-import { FileText, Search, Brain, TrendingUp, Compass, ArrowRight, Sparkles, Upload, Target, GraduationCap, Mic, Zap, Heart, Users } from "lucide-react";
+import { FileText, Search, Brain, TrendingUp, Compass, ArrowRight, Sparkles, Upload, Target, GraduationCap, Mic, Zap, Users } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
 import TextReveal from "@/components/TextReveal";
 import TypingText from "@/components/TypingText";
