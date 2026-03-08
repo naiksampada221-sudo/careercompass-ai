@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Map, Loader2, BookOpen, Youtube, ExternalLink, Award, Wrench, FolderOpen, Clock, ChevronRight, Sparkles, ArrowLeft, Search, TrendingUp } from "lucide-react";
+import { Map, Loader2, BookOpen, Youtube, ExternalLink, Award, Wrench, FolderOpen, Clock, ChevronRight, Sparkles, ArrowLeft, Search, TrendingUp, Download, MessageSquare, GraduationCap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BackButton from "@/components/BackButton";
 import PageHeader from "@/components/PageHeader";
@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { saveActivity } from "@/lib/saveActivity";
+import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
 
 interface CareerPath {
   id: string;
@@ -116,6 +118,7 @@ export default function CareerRoadmapPage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -162,6 +165,134 @@ export default function CareerRoadmapPage() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const generatePDF = (rm: CareerRoadmap) => {
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    const checkPage = (needed: number) => {
+      if (y + needed > 275) { doc.addPage(); y = 20; }
+    };
+
+    // Title
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${rm.career} — Career Roadmap`, pageW / 2, y, { align: "center" });
+    y += 10;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Estimated: ${rm.totalMonths} months to become job-ready`, pageW / 2, y, { align: "center" });
+    y += 8;
+    doc.setDrawColor(100);
+    doc.line(20, y, pageW - 20, y);
+    y += 8;
+
+    // Overview
+    doc.setFontSize(10);
+    const overviewLines = doc.splitTextToSize(rm.overview, pageW - 40);
+    doc.text(overviewLines, 20, y);
+    y += overviewLines.length * 5 + 6;
+
+    // Required Skills
+    checkPage(20);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Required Skills", 20, y);
+    y += 7;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    rm.requiredSkills.forEach((sk) => {
+      checkPage(10);
+      doc.text(`• ${sk.name} [${sk.level}] — ${sk.description}`, 24, y, { maxWidth: pageW - 48 });
+      const lines = doc.splitTextToSize(`• ${sk.name} [${sk.level}] — ${sk.description}`, pageW - 48);
+      y += lines.length * 4.5 + 2;
+    });
+    y += 4;
+
+    // Stages
+    rm.stages.forEach((stage, si) => {
+      checkPage(25);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Stage ${si + 1}: ${stage.title} (${stage.duration})`, 20, y);
+      y += 7;
+
+      stage.topics.forEach((topic) => {
+        checkPage(15);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text(`▸ ${topic.name}`, 24, y);
+        y += 5;
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        const descLines = doc.splitTextToSize(topic.description, pageW - 52);
+        doc.text(descLines, 28, y);
+        y += descLines.length * 4.5 + 1;
+
+        topic.resources.forEach((r) => {
+          checkPage(6);
+          doc.text(`  📖 ${r}`, 28, y);
+          y += 4.5;
+        });
+
+        // YouTube links
+        const ytBase = `https://youtube.com/results?search_query=`;
+        checkPage(6);
+        doc.setTextColor(200, 0, 0);
+        doc.text(`  🎥 YouTube: English | Hindi | Spanish`, 28, y);
+        doc.setTextColor(0);
+        y += 6;
+      });
+
+      if (stage.projects.length > 0) {
+        checkPage(10);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("Projects:", 24, y);
+        y += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        stage.projects.forEach((p) => {
+          checkPage(6);
+          doc.text(`  🛠 ${p}`, 28, y);
+          y += 4.5;
+        });
+      }
+      y += 6;
+    });
+
+    // Certifications
+    if (rm.certifications?.length > 0) {
+      checkPage(20);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Recommended Certifications", 20, y);
+      y += 7;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      rm.certifications.forEach((c) => {
+        checkPage(6);
+        doc.text(`🏅 ${c.name} — ${c.provider} [${c.difficulty}]`, 24, y);
+        y += 5;
+      });
+    }
+
+    // Footer
+    doc.addPage();
+    y = 20;
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("You're ready to start your journey!", pageW / 2, y, { align: "center" });
+    y += 10;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Generated by CareerCompass AI", pageW / 2, y, { align: "center" });
+
+    doc.save(`${rm.career.replace(/\s+/g, "_")}_Roadmap.pdf`);
+    toast({ title: "PDF Downloaded!", description: `Your ${rm.career} roadmap has been saved.` });
+  };
+
 
   const selectCareer = async (career: string) => {
     setSelectedCareer(career);
@@ -396,14 +527,26 @@ export default function CareerRoadmapPage() {
                                   <ExternalLink className="h-3 w-3" /> {r}
                                 </span>
                               ))}
-                              <a
-                                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(topic.youtubeSearch)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-md flex items-center gap-1 hover:bg-destructive/20 transition-colors"
-                              >
-                                <Youtube className="h-3 w-3" /> YouTube
-                              </a>
+                            </div>
+                            {/* YouTube links in 3 languages */}
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {[
+                                { lang: "English", flag: "🇬🇧", suffix: " tutorial english" },
+                                { lang: "Hindi", flag: "🇮🇳", suffix: " tutorial hindi" },
+                                { lang: "Spanish", flag: "🇪🇸", suffix: " tutorial español" },
+                              ].map((l) => (
+                                <a
+                                  key={l.lang}
+                                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(topic.youtubeSearch + l.suffix)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs bg-destructive/10 text-destructive px-2.5 py-1 rounded-md flex items-center gap-1.5 hover:bg-destructive/20 transition-colors"
+                                >
+                                  <Youtube className="h-3 w-3" />
+                                  <span>{l.flag}</span>
+                                  <span>{l.lang}</span>
+                                </a>
+                              ))}
                             </div>
                           </div>
                         ))}
@@ -452,12 +595,38 @@ export default function CareerRoadmapPage() {
               </AnimatedSection>
             )}
 
-            <button
-              onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
-              className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm"
-            >
-              Explore Another Career
-            </button>
+            {/* Action buttons */}
+            <AnimatedSection delay={0.2}>
+              <div className="glass-card rounded-2xl p-6 space-y-4">
+                <h3 className="font-display font-semibold text-lg flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5 text-primary" /> What's Next?
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  You now have a complete roadmap to become a <span className="font-semibold text-foreground">{roadmap.career}</span>. 
+                  Download this roadmap as a PDF to track your progress, or start preparing for interviews right away!
+                </p>
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <button
+                    onClick={() => generatePDF(roadmap)}
+                    className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" /> Download Roadmap PDF
+                  </button>
+                  <button
+                    onClick={() => navigate("/interview-coach")}
+                    className="px-6 py-3 rounded-xl font-semibold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2"
+                  >
+                    <MessageSquare className="h-4 w-4" /> Start Interview Prep
+                  </button>
+                  <button
+                    onClick={() => { setSelectedCareer(null); setRoadmap(null); }}
+                    className="px-6 py-3 rounded-xl font-semibold text-sm bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Explore Another Career
+                  </button>
+                </div>
+              </div>
+            </AnimatedSection>
           </motion.div>
         )}
       </AnimatePresence>
