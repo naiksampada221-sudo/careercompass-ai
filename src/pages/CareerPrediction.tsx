@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { TrendingUp, Plus, X, Sparkles, Briefcase, DollarSign, BarChart3, Zap, BookOpen, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { TrendingUp, Plus, X, Sparkles, Briefcase, DollarSign, BarChart3, Zap, BookOpen, ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/BackButton";
@@ -41,15 +41,65 @@ export default function CareerPredictionPage() {
   const [loading, setLoading] = useState(false);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
   const loadingSteps = [
     { text: "Analyzing your skill set...", icon: Sparkles },
-    { text: "Matching with job market data...", icon: Briefcase },
+    { text: "Matching with Indian job market...", icon: Briefcase },
     { text: "Calculating compatibility scores...", icon: BarChart3 },
     { text: "Generating career predictions...", icon: TrendingUp },
   ];
+
+  // Fetch AI autocomplete suggestions
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (query.length < 1) {
+      setSuggestions([]);
+      return;
+    }
+    setLoadingSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("career-prediction", {
+        body: { skills: [query], action: "suggest_skills" },
+      });
+      if (!error && data?.suggestions) {
+        const filtered = data.suggestions.filter((s: string) => !skills.includes(s));
+        setSuggestions(filtered);
+        setShowSuggestions(filtered.length > 0);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }, [skills]);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (input.trim().length >= 1) {
+      debounceRef.current = setTimeout(() => fetchSuggestions(input.trim()), 300);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [input, fetchSuggestions]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const addSkill = (skill: string) => {
     const trimmed = skill.trim();
@@ -57,6 +107,8 @@ export default function CareerPredictionPage() {
       setSkills([...skills, trimmed]);
     }
     setInput("");
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const removeSkill = (skill: string) => {
@@ -125,7 +177,7 @@ export default function CareerPredictionPage() {
       <PageHeader
         icon={<TrendingUp className="h-7 w-7" />}
         title="AI Career Prediction"
-        subtitle="Enter your skills and discover the best career paths powered by AI."
+        subtitle="Enter your skills and discover the best career paths powered by Google Gemini AI."
       />
 
       <AnimatePresence mode="wait">
@@ -145,23 +197,60 @@ export default function CareerPredictionPage() {
                   Add Your Skills
                 </label>
 
-                <div className="flex gap-2 mb-4">
-                  <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type a skill and press Enter..."
-                    className="flex-1 rounded-xl bg-muted px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => addSkill(input)}
-                    disabled={!input.trim()}
-                    className="gradient-btn px-4 rounded-xl disabled:opacity-40"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </motion.button>
+                <div className="relative" ref={dropdownRef}>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                        placeholder="Type a skill (e.g., Python, React, Data Analysis)..."
+                        className="w-full rounded-xl bg-muted pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                      />
+                      {loadingSuggestions && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+                      )}
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => addSkill(input)}
+                      disabled={!input.trim()}
+                      className="gradient-btn px-4 rounded-xl disabled:opacity-40"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </motion.button>
+                  </div>
+
+                  {/* Autocomplete Dropdown */}
+                  <AnimatePresence>
+                    {showSuggestions && suggestions.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scaleY: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                        exit={{ opacity: 0, y: -8, scaleY: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl glass-card border border-border overflow-hidden shadow-lg"
+                        style={{ transformOrigin: "top" }}
+                      >
+                        {suggestions.map((s, i) => (
+                          <motion.button
+                            key={s}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.03 }}
+                            onClick={() => addSkill(s)}
+                            className="w-full text-left px-4 py-2.5 text-sm hover:bg-accent/80 transition-colors flex items-center gap-2 border-b border-border/50 last:border-0"
+                          >
+                            <Sparkles className="h-3 w-3 text-primary shrink-0" />
+                            <span>{s}</span>
+                          </motion.button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Selected skills */}
@@ -171,7 +260,7 @@ export default function CareerPredictionPage() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="flex flex-wrap gap-2 mb-4"
+                      className="flex flex-wrap gap-2 mt-4"
                     >
                       {skills.map((skill) => (
                         <motion.span
@@ -193,7 +282,7 @@ export default function CareerPredictionPage() {
                 </AnimatePresence>
 
                 {/* Popular skills */}
-                <div>
+                <div className="mt-4">
                   <p className="text-xs text-muted-foreground mb-2">Popular skills:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {popularSkills
@@ -329,8 +418,8 @@ export default function CareerPredictionPage() {
                   >
                     <ScoreCircle score={predictions[0].match} size={120} />
                   </motion.div>
-                  <div className="flex items-center justify-center gap-4 mt-4">
-                    <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-center gap-4 mt-4 flex-wrap">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                       <DollarSign className="h-4 w-4 text-primary" /> {predictions[0].salary_range}
                     </span>
                     <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${demandColors[predictions[0].demand] || demandColors["Medium"]}`}>
@@ -338,6 +427,13 @@ export default function CareerPredictionPage() {
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-3 max-w-md mx-auto">{predictions[0].reason}</p>
+
+                  {/* Skills breakdown for top prediction */}
+                  <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+                    {predictions[0].key_skills_matched?.map((s) => (
+                      <span key={s} className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium">{s}</span>
+                    ))}
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -360,7 +456,7 @@ export default function CareerPredictionPage() {
                       <ScoreCircle score={p.match} size={56} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h4 className="font-display font-semibold text-sm truncate">{p.role}</h4>
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${demandColors[p.demand] || demandColors["Medium"]}`}>
                           {p.demand}
@@ -369,8 +465,8 @@ export default function CareerPredictionPage() {
                       <p className="text-xs text-muted-foreground truncate">{p.reason}</p>
                     </div>
                     <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" /> {p.salary_range}
+                      <span className="text-xs font-semibold flex items-center gap-1">
+                        {p.salary_range}
                       </span>
                       {expandedIdx === i ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     </div>
