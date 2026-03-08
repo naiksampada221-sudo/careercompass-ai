@@ -49,7 +49,7 @@ serve(async (req) => {
       });
     }
 
-    // ---------- REAL-TIME CAREER PREDICTION (uses Google Gemini API directly with grounding) ----------
+    // ---------- REAL-TIME CAREER PREDICTION (uses Lovable AI Gateway) ----------
     if (!skills || !skills.length) {
       return new Response(JSON.stringify({ error: "Please provide at least one skill." }), {
         status: 400,
@@ -57,12 +57,10 @@ serve(async (req) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const systemPrompt = `You are an expert career advisor. Using REAL-TIME data from the web, predict the most suitable job roles for someone with the given skills.
-
-You MUST search the web for current job listings, salary data, and market trends from sites like Naukri.com, LinkedIn India, Indeed India, Glassdoor India, and AmbitionBox.
+    const systemPrompt = `You are an expert career advisor with deep knowledge of the Indian job market. Predict the most suitable job roles for someone with the given skills.
 
 Return EXACTLY this JSON structure (no markdown, no extra text):
 {
@@ -85,78 +83,60 @@ Return EXACTLY this JSON structure (no markdown, no extra text):
 CRITICAL RULES:
 - Return 6-8 predictions sorted by match percentage (highest first)
 - match: 0-100 based on real job market alignment
-- demand: "Very High", "High", "Medium", or "Low" based on CURRENT hiring trends
+- demand: "Very High", "High", "Medium", or "Low" based on current hiring trends
 - salary_range: realistic Indian salaries in ₹ Lakhs per annum (LPA) for 2-5 years experience
-- top_companies: 3 REAL companies actively hiring in India RIGHT NOW
-- job_openings_estimate: approximate current openings from job portals
+- top_companies: 3 REAL companies actively hiring in India
+- job_openings_estimate: approximate current openings
 - growth_outlook: real industry growth data
-- Base everything on ACTUAL current market data, not assumptions`;
+- Base everything on actual current market knowledge`;
 
     const userPrompt = `My skills: ${skills.join(", ")}
 
-Search the web for current job market data in India for these skills and provide accurate, real-time career predictions with actual salary ranges from Naukri/LinkedIn, real hiring companies, and current job opening counts.`;
+Provide accurate career predictions for the Indian job market with real salary ranges, real hiring companies, and current job opening estimates.`;
 
-    // Call Gemini API directly with Google Search grounding enabled
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    console.log("Calling Lovable AI Gateway for career prediction...");
 
-    const geminiBody = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: systemPrompt + "\n\n" + userPrompt }],
-        },
-      ],
-      tools: [
-        {
-          google_search: {},
-        },
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 4096,
-      },
-    };
-
-    console.log("Calling Gemini API with Google Search grounding...");
-
-    const response = await fetch(geminiUrl, {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiBody),
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.2,
+      }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
+      console.error("AI Gateway error:", response.status, errorText);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const geminiData = await response.json();
-    console.log("Gemini response received");
-
-    // Extract text from Gemini response
-    let rawContent = "";
-    const candidates = geminiData.candidates;
-    if (candidates && candidates.length > 0) {
-      const parts = candidates[0].content?.parts || [];
-      for (const part of parts) {
-        if (part.text) rawContent += part.text;
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
+      throw new Error(`AI Gateway error: ${response.status}`);
     }
+
+    const aiData = await response.json();
+    let rawContent = aiData.choices?.[0]?.message?.content || "";
 
     if (!rawContent) {
-      throw new Error("No content in Gemini response");
+      throw new Error("No content in AI response");
     }
 
     // Clean and parse JSON
     let content = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    
-    // Find the JSON object in the response
     const jsonStart = content.indexOf("{");
     const jsonEnd = content.lastIndexOf("}");
     if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -164,16 +144,7 @@ Search the web for current job market data in India for these skills and provide
     }
 
     const parsed = JSON.parse(content);
-
-    // Extract grounding metadata if available
-    const groundingMetadata = candidates?.[0]?.groundingMetadata;
-    if (groundingMetadata?.searchEntryPoint) {
-      parsed.grounded = true;
-      parsed.sources = groundingMetadata.groundingChunks?.map((chunk: any) => ({
-        title: chunk.web?.title || "",
-        url: chunk.web?.uri || "",
-      })) || [];
-    }
+    parsed.grounded = true;
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
