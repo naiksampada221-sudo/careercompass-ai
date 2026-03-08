@@ -137,6 +137,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_platform_stats: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never

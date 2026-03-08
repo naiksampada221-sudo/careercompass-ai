@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import { motion, useMotionValue, useSpring } from "framer-motion";
-import { FileText, Search, Brain, TrendingUp, Compass, ArrowRight, Sparkles, Upload, Target, GraduationCap, Mic, Star, Shield, Zap, ChevronRight, Heart, Globe } from "lucide-react";
+import { FileText, Search, Brain, TrendingUp, Compass, ArrowRight, Sparkles, Upload, Target, GraduationCap, Mic, Zap, Heart, Users } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
 import TextReveal from "@/components/TextReveal";
 import TypingText from "@/components/TypingText";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import MagneticButton from "@/components/MagneticButton";
+import { usePlatformStats } from "@/hooks/usePlatformStats";
 import { useRef } from "react";
 
 const features = [
@@ -22,13 +23,6 @@ const steps = [
   { icon: Sparkles, num: "02", title: "ATS Scan", desc: "Check your resume against job descriptions for ATS compatibility", link: "/ats-scanner" },
   { icon: Target, num: "03", title: "Career Insights", desc: "Explore career paths, skill roadmaps & predictions", link: "/career-roadmap" },
   { icon: GraduationCap, num: "04", title: "Interview Prep", desc: "Practice with AI-powered mock interviews", link: "/interview-coach" },
-];
-
-const stats = [
-  { value: "50K+", label: "Resumes Analyzed", icon: FileText },
-  { value: "95%", label: "User Satisfaction", icon: Star },
-  { value: "200+", label: "Career Paths", icon: Target },
-  { value: "24/7", label: "AI Available", icon: Zap },
 ];
 
 function FeatureCard({ f, i }: { f: typeof features[0]; i: number }) {
@@ -85,6 +79,15 @@ function FeatureCard({ f, i }: { f: typeof features[0]; i: number }) {
 }
 
 export default function HomePage() {
+  const { data: platformStats } = usePlatformStats();
+
+  const stats = [
+    { value: `${platformStats?.resumes_analyzed ?? 0}`, label: "Resumes Analyzed", icon: FileText },
+    { value: `${platformStats?.ats_scans ?? 0}`, label: "ATS Scans", icon: Search },
+    { value: `${platformStats?.interview_sessions ?? 0}`, label: "Interviews", icon: Brain },
+    { value: `${platformStats?.total_users ?? 0}`, label: "Users", icon: Users },
+  ];
+
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -354,44 +357,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="section-padding bg-muted/20">
-        <div className="max-w-5xl mx-auto">
-          <TextReveal>
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-center mb-10">
-              Trusted by <span className="gradient-text">Professionals</span> Worldwide
-            </h2>
-          </TextReveal>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {[
-              { quote: "This tool transformed my job search. Got 3x more interviews!", name: "Sarah K.", role: "Software Engineer", avatar: "👩‍💻" },
-              { quote: "The ATS scanner alone saved me weeks of trial and error.", name: "James M.", role: "Product Manager", avatar: "👨‍💼" },
-              { quote: "Best AI career tool I've ever used. The interview prep is incredible.", name: "Priya S.", role: "Data Scientist", avatar: "👩‍🔬" },
-            ].map((t, i) => (
-              <AnimatedSection key={t.name} delay={i * 0.1}>
-                <motion.div
-                  whileHover={{ y: -4 }}
-                  className="glass-card-premium rounded-2xl p-6 h-full"
-                >
-                  <div className="flex gap-1 mb-3">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">"{t.quote}"</p>
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{t.avatar}</span>
-                    <div>
-                      <p className="text-sm font-semibold">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">{t.role}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatedSection>
-            ))}
-          </div>
-        </div>
-      </section>
+
+
 
       {/* Footer */}
       <footer className="py-12 border-t border-border/50 relative overflow-hidden">

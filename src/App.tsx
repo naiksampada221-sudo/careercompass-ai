@@ -66,14 +66,6 @@ const App = () => (
                       </motion.div>
                     </MagneticButton>
                     <span className="font-display font-bold text-sm gradient-text tracking-wide">CareerCompass AI</span>
-                    <motion.span
-                      className="hidden sm:inline-flex text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 1, type: "spring" }}
-                    >
-                      BETA
-                    </motion.span>
                   </div>
                   <div className="flex items-center gap-3">
                     <GreetingBadge />
