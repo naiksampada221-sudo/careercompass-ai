@@ -15,7 +15,7 @@ export function usePlatformStats() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_platform_stats");
       if (error) throw error;
-      return data as PlatformStats;
+      return data as unknown as PlatformStats;
     },
     staleTime: 60_000,
   });
