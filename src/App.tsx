@@ -35,7 +35,8 @@ const App = () => (
               <div className="flex-1 flex flex-col min-w-0">
                 <header className="sticky top-0 z-40 h-14 flex items-center border-b border-border bg-background/80 backdrop-blur-sm px-4">
                   <SidebarTrigger />
-                  <span className="ml-3 font-display font-semibold text-sm gradient-text">CareerCompass AI</span>
+                  <span className="ml-3 font-display font-semibold text-sm gradient-text flex-1">CareerCompass AI</span>
+                  <HeaderNav />
                 </header>
                 <main className="flex-1">
                   <Routes>
