@@ -373,13 +373,6 @@ export default function HomePage() {
             transition={{ duration: 0.6 }}
             className="flex flex-col items-center gap-3"
           >
-            <motion.div className="flex items-center gap-1 text-sm text-muted-foreground">
-              Crafted with
-              <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
-                <Heart className="h-4 w-4 text-destructive fill-destructive inline" />
-              </motion.span>
-              and AI
-            </motion.div>
             <motion.h3
               className="font-display text-xl font-bold gradient-text"
               initial={{ letterSpacing: "0.3em", opacity: 0 }}
