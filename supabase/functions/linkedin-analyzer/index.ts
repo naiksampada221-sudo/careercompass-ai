@@ -534,7 +534,8 @@ Return valid JSON only, with this exact structure:
 
     const aiData = await response.json();
     const content = String(aiData?.choices?.[0]?.message?.content || "");
-    const parsed = normalizeAnalysis(parseAiJson(content), evidenceText);
+    const explicitSkills = extractExplicitSkillsFromEvidence(evidenceText);
+    const parsed = normalizeAnalysis(parseAiJson(content), evidenceText, explicitSkills);
 
     return toJson({
       success: true,
