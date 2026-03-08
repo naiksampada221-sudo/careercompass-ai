@@ -76,7 +76,10 @@ export default function AuthPage() {
         setOtpCode(["", "", "", "", "", ""]);
         setOtpTimer(OTP_DURATION);
         setOtpSuccess(false);
+        setShowOtpSplash(true);
         setMode("otp-verify");
+        // Auto-hide splash after 3 seconds
+        setTimeout(() => setShowOtpSplash(false), 3000);
         toast({ title: "OTP Sent! 📧", description: `A 6-digit code has been sent to ${email}` });
       }
     } catch (e: any) {
