@@ -357,44 +357,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="section-padding bg-muted/20">
-        <div className="max-w-5xl mx-auto">
-          <TextReveal>
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-center mb-10">
-              Trusted by <span className="gradient-text">Professionals</span> Worldwide
-            </h2>
-          </TextReveal>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {[
-              { quote: "This tool transformed my job search. Got 3x more interviews!", name: "Sarah K.", role: "Software Engineer", avatar: "👩‍💻" },
-              { quote: "The ATS scanner alone saved me weeks of trial and error.", name: "James M.", role: "Product Manager", avatar: "👨‍💼" },
-              { quote: "Best AI career tool I've ever used. The interview prep is incredible.", name: "Priya S.", role: "Data Scientist", avatar: "👩‍🔬" },
-            ].map((t, i) => (
-              <AnimatedSection key={t.name} delay={i * 0.1}>
-                <motion.div
-                  whileHover={{ y: -4 }}
-                  className="glass-card-premium rounded-2xl p-6 h-full"
-                >
-                  <div className="flex gap-1 mb-3">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">"{t.quote}"</p>
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{t.avatar}</span>
-                    <div>
-                      <p className="text-sm font-semibold">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">{t.role}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatedSection>
-            ))}
-          </div>
-        </div>
-      </section>
+
+
 
       {/* Footer */}
       <footer className="py-12 border-t border-border/50 relative overflow-hidden">
