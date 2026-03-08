@@ -9,7 +9,7 @@ export async function saveActivity({
   resultData,
 }: {
   userId: string;
-  activityType: "resume_analysis" | "ats_scan" | "skill_explorer";
+  activityType: "resume_analysis" | "ats_scan" | "skill_explorer" | "interview_practice" | "career_roadmap";
   title: string;
   summary?: string;
   score?: number;

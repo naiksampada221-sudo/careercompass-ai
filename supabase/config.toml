@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.career-roadmap]
 verify_jwt = false
+
+[functions.interview-coach]
+verify_jwt = false
