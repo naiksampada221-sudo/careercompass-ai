@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Compass, Search, BookOpen, Youtube, Clock, ExternalLink, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Compass, Search, BookOpen, Youtube, Clock, ExternalLink, Loader2, Sparkles, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BackButton from "@/components/BackButton";
 import PageHeader from "@/components/PageHeader";
@@ -24,37 +24,115 @@ interface SkillPlan {
   steps: LearningStep[];
 }
 
+interface SkillSuggestion {
+  skill: string;
+  category: string;
+}
+
+const exampleSkills = [
+  { label: "React", icon: "⚛️" },
+  { label: "Python", icon: "🐍" },
+  { label: "Machine Learning", icon: "🤖" },
+  { label: "Docker", icon: "🐳" },
+  { label: "TypeScript", icon: "📘" },
+  { label: "AWS", icon: "☁️" },
+  { label: "Kubernetes", icon: "⚙️" },
+  { label: "GraphQL", icon: "📊" },
+  { label: "Rust", icon: "🦀" },
+  { label: "System Design", icon: "🏗️" },
+  { label: "Cybersecurity", icon: "🔒" },
+  { label: "Data Engineering", icon: "🔧" },
+];
+
+const categoryColors: Record<string, string> = {
+  Programming: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  Data: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  Design: "bg-pink-500/10 text-pink-400 border-pink-500/20",
+  Business: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  DevOps: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  "AI/ML": "bg-purple-500/10 text-purple-400 border-purple-500/20",
+};
+
 export default function SkillExplorerPage() {
   const [skill, setSkill] = useState("");
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<SkillPlan | null>(null);
+  const [suggestions, setSuggestions] = useState<SkillSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const inputRef = useRef<HTMLDivElement>(null);
 
-  const handleExplore = async () => {
-    if (!skill.trim()) return;
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    setLoadingSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("career-roadmap", {
+        body: { career: query, action: "suggest_skills" },
+      });
+      if (!error && data?.result) {
+        setSuggestions(data.result);
+        setShowSuggestions(true);
+      }
+    } catch {
+      // silently fail for autocomplete
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (skill.trim().length >= 2) {
+      debounceRef.current = setTimeout(() => fetchSuggestions(skill.trim()), 400);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [skill, fetchSuggestions]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const handleExplore = async (selectedSkill?: string) => {
+    const s = selectedSkill || skill;
+    if (!s.trim()) return;
+    setSkill(s);
+    setShowSuggestions(false);
     setLoading(true);
     setPlan(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("skill-explorer", {
-        body: { skill: skill.trim() },
+        body: { skill: s.trim() },
       });
-
       if (error) throw error;
       setPlan(data.plan);
       if (user) {
         saveActivity({
           userId: user.id,
           activityType: "skill_explorer",
-          title: `Skill Explorer: ${skill.trim()}`,
+          title: `Skill Explorer: ${s.trim()}`,
           summary: `${data.plan.totalWeeks} week learning plan with ${data.plan.steps?.length || 0} steps`,
           resultData: data.plan,
         });
       }
     } catch (e: any) {
       console.error(e);
-      toast({ title: "Error", description: e.message || "Failed to generate plan. Please try again.", variant: "destructive" });
+      toast({ title: "Error", description: e.message || "Failed to generate plan.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -69,7 +147,7 @@ export default function SkillExplorerPage() {
         <AnimatedSection>
           <div className="glass-card rounded-2xl p-6">
             <label className="block font-semibold text-sm mb-3">What skill do you want to learn?</label>
-            <div className="flex gap-3">
+            <div className="flex gap-3" ref={inputRef}>
               <div className="flex-1 relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
@@ -77,18 +155,66 @@ export default function SkillExplorerPage() {
                   value={skill}
                   onChange={(e) => setSkill(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleExplore()}
+                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
                   placeholder="e.g., Docker, React, Machine Learning, Python..."
                   className="w-full rounded-xl bg-muted pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
+                {loadingSuggestions && (
+                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+
+                <AnimatePresence>
+                  {showSuggestions && suggestions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="absolute z-50 top-full mt-2 left-0 right-0 bg-card border border-border rounded-xl shadow-xl overflow-hidden"
+                    >
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleExplore(s.skill)}
+                          className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-2 text-sm"
+                        >
+                          <span className="font-medium">{s.skill}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full border ${categoryColors[s.category] || "bg-muted text-muted-foreground"}`}>
+                            {s.category}
+                          </span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               <button
-                onClick={handleExplore}
+                onClick={() => handleExplore()}
                 disabled={!skill.trim() || loading}
                 className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Compass className="h-4 w-4" />}
                 Explore
               </button>
+            </div>
+
+            {/* Example skills */}
+            <div className="mt-5">
+              <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5" /> Popular skills to explore
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {exampleSkills.map((ex) => (
+                  <button
+                    key={ex.label}
+                    onClick={() => handleExplore(ex.label)}
+                    disabled={loading}
+                    className="px-3 py-1.5 rounded-lg bg-muted hover:bg-primary/10 hover:text-primary border border-border hover:border-primary/30 text-sm transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <span>{ex.icon}</span>
+                    <span>{ex.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </AnimatedSection>
@@ -107,7 +233,6 @@ export default function SkillExplorerPage() {
         <AnimatePresence>
           {plan && !loading && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 mt-6">
-              {/* Overview */}
               <div className="glass-card rounded-2xl p-6">
                 <h3 className="font-display font-semibold text-xl mb-2 flex items-center gap-2">
                   <span className="w-8 h-8 rounded-lg gradient-btn flex items-center justify-center"><BookOpen className="h-4 w-4" /></span>
@@ -115,21 +240,13 @@ export default function SkillExplorerPage() {
                 </h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{plan.overview}</p>
                 <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  Estimated: {plan.totalWeeks} weeks
+                  <Clock className="h-3.5 w-3.5" /> Estimated: {plan.totalWeeks} weeks
                 </div>
               </div>
 
-              {/* Steps */}
               <div className="space-y-4">
                 {plan.steps.map((step, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="glass-card rounded-2xl overflow-hidden"
-                  >
+                  <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }} className="glass-card rounded-2xl overflow-hidden">
                     <div className="bg-gradient-to-r from-primary/10 to-secondary/10 px-6 py-3 flex items-center gap-3">
                       <span className="w-8 h-8 rounded-lg gradient-btn flex items-center justify-center text-xs font-bold">{i + 1}</span>
                       <div>
@@ -139,39 +256,27 @@ export default function SkillExplorerPage() {
                     </div>
                     <div className="p-6">
                       <p className="text-sm text-muted-foreground mb-4">{step.description}</p>
-
                       {step.resources.length > 0 && (
                         <div className="mb-3">
                           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Resources</p>
                           <div className="space-y-1">
                             {step.resources.map((r, j) => (
                               <p key={j} className="text-sm flex items-start gap-2">
-                                <ExternalLink className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
-                                {r}
+                                <ExternalLink className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" /> {r}
                               </p>
                             ))}
                           </div>
                         </div>
                       )}
-
-                      <a
-                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(step.youtubeSearch)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
-                      >
-                        <Youtube className="h-4 w-4" />
-                        Watch on YouTube
+                      <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(step.youtubeSearch)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors">
+                        <Youtube className="h-4 w-4" /> Watch on YouTube
                       </a>
                     </div>
                   </motion.div>
                 ))}
               </div>
 
-              <button
-                onClick={() => { setPlan(null); setSkill(""); }}
-                className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm"
-              >
+              <button onClick={() => { setPlan(null); setSkill(""); }} className="gradient-btn px-6 py-3 rounded-xl font-semibold text-sm">
                 Explore Another Skill
               </button>
             </motion.div>
