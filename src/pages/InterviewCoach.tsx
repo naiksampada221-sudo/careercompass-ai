@@ -588,14 +588,21 @@ export default function InterviewCoachPage() {
             </AnimatePresence>
           </div>
 
-          {/* Next Button */}
-          <button onClick={nextQuestion} className="w-full gradient-btn py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2">
-            {currentIndex + 1 >= questions.length ? (
-              <><Trophy className="h-5 w-5" /> View Final Report</>
-            ) : (
-              <><ArrowRight className="h-5 w-5" /> Next Question ({currentIndex + 2}/{questions.length})</>
+          {/* Actions */}
+          <div className="flex gap-3">
+            {currentIndex + 1 < questions.length && (
+              <button onClick={endInterviewEarly} className="flex-1 py-3 rounded-2xl font-semibold text-sm bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center justify-center gap-2">
+                <XCircle className="h-4 w-4" /> End Interview
+              </button>
             )}
-          </button>
+            <button onClick={nextQuestion} className="flex-1 gradient-btn py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2">
+              {currentIndex + 1 >= questions.length ? (
+                <><Trophy className="h-5 w-5" /> View Final Report</>
+              ) : (
+                <><ArrowRight className="h-5 w-5" /> Next Question ({currentIndex + 2}/{questions.length})</>
+              )}
+            </button>
+          </div>
         </motion.div>
       )}
 
