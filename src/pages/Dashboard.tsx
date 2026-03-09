@@ -559,7 +559,7 @@ export default function DashboardPage() {
                           >
                             {barData.map((entry, index) => {
                               const fills = ["url(#barGrad0)", "url(#barGrad1)", "url(#barGrad2)", "url(#barGrad3)"];
-                              return <motion.rect key={index} fill={fills[index]} />;
+                              return <Cell key={index} fill={fills[index]} />;
                             })}
                           </Bar>
                         </BarChart>
