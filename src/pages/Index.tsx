@@ -175,40 +175,6 @@ function MarqueeBar() {
   );
 }
 
-function TestimonialCard({ t, i }: { t: typeof testimonials[0]; i: number }) {
-  return (
-    <AnimatedSection delay={i * 0.15}>
-      <motion.div
-        whileHover={{ y: -8, scale: 1.02 }}
-        className="glass-card-premium rounded-2xl p-6 h-full group cursor-default"
-      >
-        <div className="flex gap-1 mb-3">
-          {Array.from({ length: t.rating }).map((_, j) => (
-            <motion.div
-              key={j}
-              initial={{ opacity: 0, scale: 0 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 + j * 0.1, type: "spring" }}
-            >
-              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-            </motion.div>
-          ))}
-        </div>
-        <p className="text-sm text-foreground/80 mb-4 leading-relaxed italic">"{t.text}"</p>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-primary-foreground text-xs font-bold">
-            {t.name[0]}
-          </div>
-          <div>
-            <p className="text-sm font-semibold">{t.name}</p>
-            <p className="text-xs text-muted-foreground">{t.role}</p>
-          </div>
-        </div>
-      </motion.div>
-    </AnimatedSection>
-  );
-}
 
 function TrustBadge({ icon: Icon, label, delay }: { icon: any; label: string; delay: number }) {
   return (
