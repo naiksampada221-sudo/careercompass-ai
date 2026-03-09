@@ -487,65 +487,93 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <motion.div
-                  initial={{ opacity: 0, rotate: -90 }}
-                  animate={{ opacity: 1, rotate: 0 }}
-                  transition={{ delay: 0.6, duration: 1 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6, duration: 0.8 }}
                   style={{ height: 250 }}
-                  className="flex items-center"
                 >
                   {(() => {
                     const resumeCount = history.filter((h: any) => h.activity_type === "resume_analysis").length;
                     const atsCount = history.filter((h: any) => h.activity_type === "ats_scan").length;
-                    const otherCount = history.length - resumeCount - atsCount;
-                    const donutData = [
-                      { name: "Resume", value: resumeCount || 1 },
-                      { name: "ATS Scan", value: atsCount || 1 },
-                      { name: "Other", value: otherCount || 1 },
+                    const interviewCount = history.filter((h: any) => h.activity_type === "interview").length;
+                    const otherCount = history.length - resumeCount - atsCount - interviewCount;
+                    const barData = [
+                      { name: "Resume", count: resumeCount || 0, fill: "hsl(258, 90%, 65%)" },
+                      { name: "ATS", count: atsCount || 0, fill: "hsl(220, 70%, 55%)" },
+                      { name: "Interview", count: interviewCount || 0, fill: "hsl(340, 80%, 55%)" },
+                      { name: "Other", count: otherCount || 0, fill: "hsl(170, 70%, 45%)" },
                     ];
-                    const COLORS = ["hsl(258, 90%, 65%)", "hsl(220, 70%, 55%)", "hsl(170, 70%, 45%)"];
                     return (
-                      <div className="w-full flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                        <div className="flex-1" style={{ height: 200 }}>
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={donutData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={55}
-                                outerRadius={80}
-                                paddingAngle={4}
-                                dataKey="value"
-                                animationDuration={1200}
-                                animationBegin={600}
-                                stroke="none"
-                              >
-                                {donutData.map((_entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                              </Pie>
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </div>
-                        <div className="space-y-3">
-                          {[
-                            { label: "Resume", color: "bg-[hsl(258,90%,65%)]" },
-                            { label: "ATS Scan", color: "bg-[hsl(220,70%,55%)]" },
-                            { label: "Other", color: "bg-[hsl(170,70%,45%)]" },
-                          ].map((item, i) => (
-                            <motion.div
-                              key={item.label}
-                              initial={{ opacity: 0, x: 10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.8 + i * 0.1 }}
-                              className="flex items-center gap-2"
-                            >
-                              <span className={`w-3 h-3 rounded-full ${item.color} shadow-lg`} />
-                              <span className="text-xs text-muted-foreground font-medium">{item.label}</span>
-                            </motion.div>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={barData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                          <defs>
+                            <linearGradient id="barGrad0" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="hsl(258, 90%, 65%)" stopOpacity={0.9} />
+                              <stop offset="100%" stopColor="hsl(258, 90%, 65%)" stopOpacity={0.4} />
+                            </linearGradient>
+                            <linearGradient id="barGrad1" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="hsl(220, 70%, 55%)" stopOpacity={0.9} />
+                              <stop offset="100%" stopColor="hsl(220, 70%, 55%)" stopOpacity={0.4} />
+                            </linearGradient>
+                            <linearGradient id="barGrad2" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0.9} />
+                              <stop offset="100%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0.4} />
+                            </linearGradient>
+                            <linearGradient id="barGrad3" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="hsl(170, 70%, 45%)" stopOpacity={0.9} />
+                              <stop offset="100%" stopColor="hsl(170, 70%, 45%)" stopOpacity={0.4} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} vertical={false} />
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                            axisLine={{ stroke: "hsl(var(--border))" }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                            axisLine={false}
+                            tickLine={false}
+                            allowDecimals={false}
+                          />
+                          <Tooltip
+                            content={({ active, payload, label }: any) => {
+                              if (active && payload?.length) {
+                                return (
+                                  <div className="bg-card/95 backdrop-blur-xl border border-border rounded-xl px-4 py-3 shadow-xl">
+                                    <p className="text-xs font-semibold text-foreground">{label}</p>
+                                    <p className="text-sm font-bold text-primary mt-1">{payload[0].value} activities</p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          {barData.map((_, idx) => (
+                            <Bar
+                              key={idx}
+                              dataKey="count"
+                              radius={[8, 8, 0, 0]}
+                              animationDuration={1500}
+                              animationBegin={400 + idx * 150}
+                              animationEasing="ease-out"
+                            />
                           ))}
-                        </div>
-                      </div>
+                          <Bar
+                            dataKey="count"
+                            radius={[8, 8, 0, 0]}
+                            animationDuration={1500}
+                            animationBegin={400}
+                            animationEasing="ease-out"
+                          >
+                            {barData.map((_, index) => {
+                              const fills = ["url(#barGrad0)", "url(#barGrad1)", "url(#barGrad2)", "url(#barGrad3)"];
+                              return <motion.rect key={index} fill={fills[index]} />;
+                            })}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     );
                   })()}
                 </motion.div>
