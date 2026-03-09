@@ -493,26 +493,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="section-padding bg-background relative overflow-hidden">
-        <div className="max-w-6xl mx-auto relative z-10">
-          <AnimatedSection className="text-center mb-14">
-            <span className="floating-badge mb-4 inline-flex">
-              <Star className="h-3.5 w-3.5" /> Testimonials
-            </span>
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Loved by <span className="gradient-text">Professionals</span>
-            </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">See what our users have to say about their experience.</p>
-          </AnimatedSection>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {testimonials.map((t, i) => (
-              <TestimonialCard key={t.name} t={t} i={i} />
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* User Feedback */}
+      <FeedbackSection />
 
       {/* CTA */}
       <section className="section-padding">
